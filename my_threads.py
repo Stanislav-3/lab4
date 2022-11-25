@@ -39,13 +39,20 @@ class SimplestStream(QThread):
         self.IS_RUNNING = True
 
         while self.IS_RUNNING:
+            if self.timer.isActive():
+                continue
+
             t = expon.rvs(scale=1 / self.intensity, random_state=self.random_state)
-            print(t)
+
             self.start_timer_signal.emit(float(t))
+            # time.sleep(t)
+            # if self.IS_RUNNING:
+            #     self.signal.emit()
 
     def stop(self):
-        self.stop_timer_signal.emit()
         self.IS_RUNNING = False
+        # maybe can start after stopping if run executes
+        self.stop_timer_signal.emit()
 
         self.wait()
 

@@ -102,7 +102,63 @@ class Window(QMainWindow):
         self.r_lineEdit = QLineEdit(self.r_splitter)
 
         # Outputs
-        # self.output_state = QLabel(self)
+        # Empirical S0, S1, S2 box
+        self.s_empirical_layoutWidget = QWidget(self)
+        self.s_empirical_gridLayout = QGridLayout(self.s_empirical_layoutWidget)
+
+        self.s0_empirical_lineEdit = QLineEdit(self.s_empirical_layoutWidget)
+        self.s1_empirical_lineEdit = QLineEdit(self.s_empirical_layoutWidget)
+        self.s2_empirical_lineEdit = QLineEdit(self.s_empirical_layoutWidget)
+
+        self.s0_empirical_lineEdit.setReadOnly(True)
+        self.s1_empirical_lineEdit.setReadOnly(True)
+        self.s2_empirical_lineEdit.setReadOnly(True)
+
+        self.s0_empirical_label = QLabel(self.s_empirical_layoutWidget)
+        self.s1_empirical_label = QLabel(self.s_empirical_layoutWidget)
+        self.s2_empirical_label = QLabel(self.s_empirical_layoutWidget)
+
+        # S0, S1, S2 box
+        self.s_layoutWidget = QWidget(self)
+        self.s_gridLayout = QGridLayout(self.s_layoutWidget)
+
+        self.s0_lineEdit = QLineEdit(self.s_layoutWidget)
+        self.s1_lineEdit = QLineEdit(self.s_layoutWidget)
+        self.s2_lineEdit = QLineEdit(self.s_layoutWidget)
+
+        self.s0_lineEdit.setReadOnly(True)
+        self.s1_lineEdit.setReadOnly(True)
+        self.s2_lineEdit.setReadOnly(True)
+
+        self.s0_label = QLabel(self.s_layoutWidget)
+        self.s1_label = QLabel(self.s_layoutWidget)
+        self.s2_label = QLabel(self.s_layoutWidget)
+
+        # Empirical A, Q box
+        self.AQ_empirical_layoutWidget = QWidget(self)
+        self.AQ_empirical_gridLayout = QGridLayout(self.AQ_empirical_layoutWidget)
+
+        self.A_empirical_lineEdit = QLineEdit(self.AQ_empirical_layoutWidget)
+        self.Q_empirical_lineEdit = QLineEdit(self.AQ_empirical_layoutWidget)
+
+        self.A_empirical_lineEdit.setReadOnly(True)
+        self.Q_empirical_lineEdit.setReadOnly(True)
+
+        self.A_empirical_label = QLabel(self.AQ_empirical_layoutWidget)
+        self.Q_empirical_label = QLabel(self.AQ_empirical_layoutWidget)
+
+        # A, Q box
+        self.AQ_layoutWidget = QWidget(self)
+        self.AQ_gridLayout = QGridLayout(self.AQ_layoutWidget)
+
+        self.A_lineEdit = QLineEdit(self.AQ_layoutWidget)
+        self.Q_lineEdit = QLineEdit(self.AQ_layoutWidget)
+
+        self.A_lineEdit.setReadOnly(True)
+        self.Q_lineEdit.setReadOnly(True)
+
+        self.A_label = QLabel(self.AQ_layoutWidget)
+        self.Q_label = QLabel(self.AQ_layoutWidget)
 
         # Progress bar
         self.service_progressBar = QProgressBar(self)
@@ -166,6 +222,49 @@ class Window(QMainWindow):
         # Output
         self.output.setGeometry(10, 20 + self.buttons_height, self.width - 10, self.height - 20 - self.buttons_height)
 
+        # Outputs
+        # Empirical S0, S1, S2 box
+        self.s_empirical_layoutWidget.setGeometry(QRect(630, 320, 150, 85))
+        self.s_empirical_gridLayout.setContentsMargins(0, 0, 0, 0)
+
+        self.s_empirical_gridLayout.addWidget(self.s0_empirical_label, 0, 0, 1, 1)
+        self.s_empirical_gridLayout.addWidget(self.s1_empirical_label, 1, 0, 1, 1)
+        self.s_empirical_gridLayout.addWidget(self.s2_empirical_label, 2, 0, 1, 1)
+
+        self.s_empirical_gridLayout.addWidget(self.s0_empirical_lineEdit, 0, 1, 1, 1)
+        self.s_empirical_gridLayout.addWidget(self.s1_empirical_lineEdit, 1, 1, 1, 1)
+        self.s_empirical_gridLayout.addWidget(self.s2_empirical_lineEdit, 2, 1, 1, 1)
+
+        # S0, S1, S2 box
+        self.s_layoutWidget.setGeometry(QRect(400, 320, 150, 85))
+        self.s_gridLayout.setContentsMargins(0, 0, 0, 0)
+
+        self.s_gridLayout.addWidget(self.s0_label, 0, 0, 1, 1)
+        self.s_gridLayout.addWidget(self.s1_label, 1, 0, 1, 1)
+        self.s_gridLayout.addWidget(self.s2_label, 2, 0, 1, 1)
+
+        self.s_gridLayout.addWidget(self.s0_lineEdit, 0, 1, 1, 1)
+        self.s_gridLayout.addWidget(self.s1_lineEdit, 1, 1, 1, 1)
+        self.s_gridLayout.addWidget(self.s2_lineEdit, 2, 1, 1, 1)
+
+        # Empirical A, Q box
+        self.AQ_empirical_layoutWidget.setGeometry(QRect(200, 340, 141, 51))
+        self.AQ_empirical_gridLayout.setContentsMargins(0, 0, 0, 0)
+
+        self.AQ_empirical_gridLayout.addWidget(self.A_empirical_label, 0, 0, 1, 1)
+        self.AQ_empirical_gridLayout.addWidget(self.Q_empirical_label, 1, 0, 1, 1)
+        self.AQ_empirical_gridLayout.addWidget(self.A_empirical_lineEdit, 0, 1, 1, 1)
+        self.AQ_empirical_gridLayout.addWidget(self.Q_empirical_lineEdit, 1, 1, 1, 1)
+
+        # A, Q box
+        self.AQ_layoutWidget.setGeometry(QRect(20, 340, 141, 51))
+        self.AQ_gridLayout.setContentsMargins(0, 0, 0, 0)
+
+        self.AQ_gridLayout.addWidget(self.A_label, 0, 0, 1, 1)
+        self.AQ_gridLayout.addWidget(self.Q_label, 1, 0, 1, 1)
+        self.AQ_gridLayout.addWidget(self.A_lineEdit, 0, 1, 1, 1)
+        self.AQ_gridLayout.addWidget(self.Q_lineEdit, 1, 1, 1, 1)
+
         # Inputs
         self.x_splitter.setGeometry(QRect(40, 110, 138, 21))
         self.y_splitter.setGeometry(QRect(420, 80, 138, 21))
@@ -188,6 +287,21 @@ class Window(QMainWindow):
 
         self.r_label.setText('R:')
         self.r_lineEdit.setText(str(self.R))
+
+        # Outputs
+        self.s0_empirical_label.setText("s0*")
+        self.s1_empirical_label.setText("s1*")
+        self.s2_empirical_label.setText("s2*")
+
+        self.s0_label.setText("s0")
+        self.s1_label.setText("s1")
+        self.s2_label.setText("s2")
+
+        self.A_empirical_label.setText("A*")
+        self.Q_empirical_label.setText("Q*")
+
+        self.A_label.setText("A")
+        self.Q_label.setText("Q")
 
     def startButtonClicked(self):
         self.output.setText('Start')
