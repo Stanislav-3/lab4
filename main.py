@@ -62,6 +62,7 @@ class Window(QMainWindow):
         self.Y = 123
         self.R = 12
         self.queueing_system = QueueingSystem(self.X, self.Y, self.R, random_state=42)
+        self.output_precision = 5
 
         # QMainWindow
         self.top = 15000
@@ -183,19 +184,47 @@ class Window(QMainWindow):
         self.queueing_system.break_down_signal.connect(self.run_repair_progressbar)
         self.queueing_system.service_event.start_timer_signal.connect(self.run_service_progressbar)
 
+        self.queueing_system.update_timer_signal.connect(self._update_output_empirical_characteristics)
+        self.queueing_system.update_theoretical_characteristics_signal.connect(self._update_output_theoretical_characteristics)
+
         self.intensity_updated.connect(self._intensity_updated)
 
         # Test
         self.test_my = Test(self.queueing_system, self.output, self)
+
+        # Update characteristics
+        self.queueing_system.update_theoretical_characteristics()
 
         # Show
         self.changeGeometry()
         self.changeTexts()
         self.show()
 
+    def _update_output_theoretical_characteristics(self, s0: float, s1: float, s2: float, A: float, Q: float):
+        self.s0_lineEdit.setText(str(round(s0, self.output_precision)))
+        self.s1_lineEdit.setText(str(round(s1, self.output_precision)))
+        self.s2_lineEdit.setText(str(round(s2, self.output_precision)))
+        self.A_lineEdit.setText(str(round(A, self.output_precision)))
+        self.Q_lineEdit.setText(str(round(Q, self.output_precision)))
+
+    def _update_output_empirical_characteristics(self, s0: float, s1: float, s2: float, A: float, Q: float):
+        self.s0_empirical_lineEdit.setText(str(round(s0, self.output_precision)))
+        self.s1_empirical_lineEdit.setText(str(round(s1, self.output_precision)))
+        self.s2_empirical_lineEdit.setText(str(round(s2, self.output_precision)))
+        self.A_empirical_lineEdit.setText(str(round(A, self.output_precision)))
+        self.Q_empirical_lineEdit.setText(str(round(Q, self.output_precision)))
+
     # TODO: UPDATE CHARACTERISTICS & CLEAR PREVIOUS
     def _intensity_updated(self):
         self.queueing_system.update_intensities(self.X, self.Y, self.R)
+
+        self.s0_empirical_lineEdit.setText("")
+        self.s1_empirical_lineEdit.setText("")
+        self.s2_empirical_lineEdit.setText("")
+        self.A_empirical_lineEdit.setText("")
+        self.Q_empirical_lineEdit.setText("")
+
+
 
     def run_button_clicked(self):
         self.repair_progressbar_thread.set_secs(1)
@@ -328,7 +357,7 @@ class Window(QMainWindow):
         self.output.clear()
         self.test_my.start()
 
-    def process_input(self, text: str, prev_int: int, _type: str):
+    def process_input(self, text: str, prev_number: int, _type: str):
         def inner():
             number = None
 
@@ -336,30 +365,36 @@ class Window(QMainWindow):
                 number = float(text)
             except ValueError as e:
                 QMessageBox(QMessageBox.Critical, "", str(e), parent=self).show()
-                return prev_int
+                return prev_number, False
 
             max_number = 10**5
             if number < 0 or number > max_number:
                 QMessageBox(QMessageBox.Critical, "", f"number should be in [0, {max_number}]", parent=self).show()
-                return prev_int
+                return prev_number, False
 
-            return number
+            if number == prev_number:
+                return prev_number, False
+
+            return number, True
 
         if self.prev_text == text:
             return
         self.prev_text = text
 
         if _type == 'x':
-            self.X = inner()
+            self.X, update = inner()
             self.x_lineEdit.setText(str(self.X))
         elif _type == 'y':
-            self.Y = inner()
+            self.Y, update = inner()
             self.y_lineEdit.setText(str(self.Y))
         elif _type == 'r':
-            self.R = inner()
+            self.R, update = inner()
             self.r_lineEdit.setText(str(self.R))
+        else:
+            raise ValueError("Unexpected _type argument")
 
-        self.intensity_updated.emit()
+        if update:
+            self.intensity_updated.emit()
 
 
 App = QApplication(sys.argv)

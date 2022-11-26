@@ -89,13 +89,6 @@ class SimplestEvent(QThread):
     def update_intensity(self, intensity):
         self.intensity = intensity
 
-    # def start(self, priority: 'QThread.Priority' = QThread.InheritPriority) -> None:
-    #     if self.initial_start:
-    #         self.initial_start = False
-    #         super(SimplestEvent, self).start(priority)
-    #     else:
-    #         self.run()
-
     def run(self):
         self.IS_RUNNING = True
         self.IS_FINISHED = False
