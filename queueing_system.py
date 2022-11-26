@@ -1,7 +1,7 @@
 # import time
 # import scipy
 from PyQt5.QtCore import QTimer, QThread, QObject, pyqtSignal
-from my_threads import SimplestStream, SimplestEvent, BreakDownEvent
+from my_threads import SimplestStream, SimplestEvent, BreakDownEvent, TimeWatcher
 import random
 
 
@@ -72,15 +72,32 @@ class QueueingSystem(QThread):
         self.is_channel_blocked = False
 
         # Update outputs timer
-        self.timer = QTimer(self)
-        self.timer.timeout.connect(self.update_characteristics_empirical)
-        self.start_timer_signal.connect(lambda secs: self.timer.start(secs * 1000))
-        self.stop_timer_signal.connect(self.timer.stop)
+        # self.timer = QTimer(self)
+        # self.timer.timeout.connect(self.update_characteristics_empirical)
+        # self.start_timer_signal.connect(lambda secs: self.timer.start(secs * 1000))
+        # self.stop_timer_signal.connect(self.timer.stop)
 
-        self.timer_update_interval_secs = 0.1
+        self.timer_update_interval_secs = 0.15
 
-    def update_characteristics_empirical(self):
-        all_time = self.idle_time + self.service_time + self.broken_time + 1
+        self.time_watcher = TimeWatcher(self.timer_update_interval_secs)
+        self.time_watcher.update_idle_time_signal.connect(lambda secs: self.update_time_and_characteristics('idle', secs))
+        self.time_watcher.update_service_time_signal.connect(lambda secs: self.update_time_and_characteristics('service', secs))
+        self.time_watcher.update_broken_time_signal.connect(lambda secs: self.update_time_and_characteristics('broken', secs))
+
+    def update_time_and_characteristics(self, state, secs):
+        if state == 'idle':
+            self.idle_time += secs
+        elif state == 'service':
+            self.service_time += secs
+        elif state == 'broken':
+            self.broken_time += secs
+        else:
+            raise ValueError('Unknown state')
+
+        self.update_empirical_characteristics()
+
+    def update_empirical_characteristics(self):
+        all_time = self.idle_time + self.service_time + self.broken_time
         s0 = self.idle_time / all_time
         s1 = self.service_time / all_time
         s2 = self.broken_time / all_time
@@ -95,7 +112,7 @@ class QueueingSystem(QThread):
         self.s1 = 1 / (1 + self.Y / self.X + self.X / self.R)
         self.s2 = 1 - self.s0 - self.s1
 
-        self.A = self.X * (self.s0 - self.s2)
+        self.A = self.X * self.s0
         self.Q = self.A / self.X
 
         self.update_theoretical_characteristics_signal.emit(self.s0, self.s1, self.s2, self.A, self.Q)
@@ -114,18 +131,31 @@ class QueueingSystem(QThread):
         self.service_event.update_intensity(self.Y)
         self.break_stream.update_intensities(self.X, self.R)
 
+        self.requests = 0
+        self.finished = 0
+        self.rejected_on_break_down = 0
+        self.rejected_on_request = 0
+        self.rejected_on_service = 0
+        self.break_downs = 0
+
+        self.idle_time = 0
+        self.service_time = 0
+        self.broken_time = 0
+
         if was_running:
             self.start()
 
     def break_down(self, repaired: bool):
         if repaired:
             self.is_channel_blocked = False
+            self.time_watcher.set_state('idle')
             print('Repair')
             return
 
         # break down
         self.service_event.stop()
         self.wait()
+        self.time_watcher.set_state('broken')
 
         if not self.service_event.isFinished():
             self.rejected_on_break_down += 1
@@ -143,11 +173,13 @@ class QueueingSystem(QThread):
             return
 
         print('New request: accepted')
+        self.time_watcher.set_state('service')
         self.is_channel_blocked = True
         self.service_event.start()
 
     def request_finished(self):
         print('Request: finished')
+        self.time_watcher.set_state('idle')
         self.finished += 1
         self.is_channel_blocked = False
 
@@ -156,12 +188,14 @@ class QueueingSystem(QThread):
         self.IS_RUNNING = True
         self.start_timer_signal.emit(self.timer_update_interval_secs)
         self.request_stream.start()
+        self.time_watcher.start()
 
     def stop(self):
         self.IS_RUNNING = False
         self.request_stream.stop()
         self.service_event.stop()
         self.break_stream.stop()
+        self.time_watcher.stop()
         self.stop_timer_signal.emit()
         self.wait()
 
@@ -169,6 +203,3 @@ class QueueingSystem(QThread):
             self.rejected_on_service += 1
 
         self.is_channel_blocked = False
-
-    def update_time(self):
-        self

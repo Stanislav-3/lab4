@@ -1,5 +1,5 @@
 # from queueing_system import QueueingSystem
-# import time
+import time
 # import scipy
 # from PyQt5.QtCore import QTimer, QThread, pyqtSignal
 # from PyQt5.QtWidgets import *
@@ -26,3 +26,8 @@
 #             f'Finished: {queueing_system.finished}\n'
 #             f'Break downs: {queueing_system.break_downs}\n'
 #         )
+
+t = time.time()
+time.sleep(1)
+
+print(t, ' | ', time.time() - t)

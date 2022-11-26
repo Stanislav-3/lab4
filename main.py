@@ -61,7 +61,7 @@ class Window(QMainWindow):
         self.X = 12
         self.Y = 123
         self.R = 12
-        self.queueing_system = QueueingSystem(self.X, self.Y, self.R, random_state=42)
+        self.queueing_system = QueueingSystem(self.X, self.Y, self.R, random_state=None)
         self.output_precision = 5
 
         # QMainWindow
@@ -367,7 +367,7 @@ class Window(QMainWindow):
                 QMessageBox(QMessageBox.Critical, "", str(e), parent=self).show()
                 return prev_number, False
 
-            max_number = 10**5
+            max_number = 10**8
             if number < 0 or number > max_number:
                 QMessageBox(QMessageBox.Critical, "", f"number should be in [0, {max_number}]", parent=self).show()
                 return prev_number, False
