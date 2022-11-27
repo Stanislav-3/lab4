@@ -176,8 +176,9 @@ class Window(QMainWindow):
         self.y_lineEdit.editingFinished.connect(lambda: self.process_input(self.y_lineEdit.text(), self.Y, 'y'))
         self.r_lineEdit.editingFinished.connect(lambda: self.process_input(self.r_lineEdit.text(), self.R, 'r'))
 
-        self.repair_progressbar_value_signal.connect(lambda secs: self.repair_progressBar.setValue(secs))
         self.service_progressbar_value_signal.connect(lambda secs: self.service_progressBar.setValue(secs))
+        self.repair_progressbar_value_signal.connect(lambda secs: self.repair_progressBar.setValue(secs))
+
         self.run_button.clicked.connect(self.run_button_clicked)
 
         self.repair_progressbar_thread = ProgressBarThread(self.repair_progressbar_value_signal)
@@ -185,6 +186,7 @@ class Window(QMainWindow):
 
         self.queueing_system.break_down_signal.connect(self.run_repair_progressbar)
         self.queueing_system.service_event.start_timer_signal.connect(self.run_service_progressbar)
+        self.queueing_system.service_event.stop_timer_signal.connect(self.service_progressbar_thread.stop)
 
         self.queueing_system.update_timer_signal.connect(self._update_output_empirical_characteristics)
         self.queueing_system.update_theoretical_characteristics_signal.connect(self._update_output_theoretical_characteristics)
@@ -232,12 +234,17 @@ class Window(QMainWindow):
         self.repair_progressbar_thread.start()
 
     def run_repair_progressbar(self, secs):
+        print('Run repair progressbar')
         self.repair_progressbar_thread.set_secs(secs)
         self.repair_progressbar_thread.start()
 
         self.service_progressbar_thread.stop()
 
     def run_service_progressbar(self, secs):
+        print('Run service progressbar')
+        if self.repair_progressbar_thread.isRunning():
+            return
+
         self.service_progressbar_thread.set_secs(secs)
         self.service_progressbar_thread.start()
 

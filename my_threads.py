@@ -101,6 +101,7 @@ class SimplestEvent(QThread):
         self.IS_RUNNING = False
 
         self.wait()
+        print('Request stopped to service')
 
     def isRunning(self) -> bool:
         return self.IS_RUNNING
@@ -153,8 +154,8 @@ class BreakDownEvent(QThread):
         if t >= service_time:
             return
 
-        self.break_down_signal.emit(t)
         t = expon.rvs(scale=1 / self.intensity_repair, random_state=self.random_state)
+        self.break_down_signal.emit(t)
         self.start_timer_signal.emit(t)
 
     def stop(self):
@@ -186,6 +187,9 @@ class ProgressBarThread(QThread):
     def stop(self):
         self.IS_RUNNING = False
         self.signal.emit(0)
+
+    def isRunning(self) -> bool:
+        return self.IS_RUNNING
 
 
 # TODO: timers move to QThread
@@ -248,6 +252,9 @@ class TimeWatcher(QThread):
 
         self.stop_timer_signal.emit()
         self.state = 'idle'
+
+    def isRunning(self) -> bool:
+        return self.IS_RUNNING
 
 
 

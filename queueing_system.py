@@ -13,8 +13,8 @@ class QueueingSystem(QThread):
     repair_signal = pyqtSignal()
 
     # Additional signals
-    start_timer_signal = pyqtSignal(float)
-    stop_timer_signal = pyqtSignal()
+    # start_timer_signal = pyqtSignal(float)
+    # stop_timer_signal = pyqtSignal()
 
     update_timer_signal = pyqtSignal(float, float, float, float, float)
     update_theoretical_characteristics_signal = pyqtSignal(float, float, float, float, float)
@@ -155,9 +155,11 @@ class QueueingSystem(QThread):
         if repaired:
             self.is_channel_blocked = False
             self.update_state_signal.emit('idle')
+            print('Repaired')
             return
 
         # break down
+        print('Broke down')
         self.service_event.stop()
         self.wait()
 
@@ -172,13 +174,12 @@ class QueueingSystem(QThread):
     def new_request(self):
         self.requests += 1
 
-        if self.state != 'idle':
-            return
-
-        if self.is_channel_blocked:
+        if self.is_channel_blocked or self.state != 'idle':
             self.rejected_on_request += 1
+            # print('Request rejected')
             return
 
+        print('Request started to service')
         self.update_state_signal.emit('service')
 
         self.is_channel_blocked = True
@@ -186,34 +187,35 @@ class QueueingSystem(QThread):
         self.service_event.start()
 
     def request_finished(self):
+        print('Request finished')
+
         self.update_state_signal.emit('idle')
 
         self.finished += 1
         self.is_channel_blocked = False
 
     def run(self):
+        self.IS_RUNNING = True
+
         self.time_watcher.start()
         self.update_state_signal.emit('idle')
 
-        self.IS_RUNNING = True
         self.request_stream.start()
 
-        self.start_timer_signal.emit(self.timer_update_interval_secs)
+        # self.start_timer_signal.emit(self.timer_update_interval_secs)
 
     def stop(self):
         self.IS_RUNNING = False
-        self.update_state_signal.emit('idle')
 
         self.time_watcher.stop()
         self.request_stream.stop()
         self.service_event.stop()
         self.break_stream.stop()
-
-        self.stop_timer_signal.emit()
-
         self.wait()
 
+        # self.stop_timer_signal.emit()
         if self.is_channel_blocked and not self.service_event.isFinished():
             self.rejected_on_service += 1
 
         self.is_channel_blocked = False
+        self.update_state_signal.emit('idle')
