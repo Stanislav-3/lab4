@@ -25,17 +25,12 @@ class SimplestStream(QThread):
         self.start_timer_signal.connect(lambda secs: self.timer.start(secs * 1000))
         self.stop_timer_signal.connect(self.timer.stop)
 
-        self.timer.timeout.connect(self.timiout)
-
-    def timiout(self):
-        print('timeout')
-        self.signal.emit()
+        self.timer.timeout.connect(self.signal.emit)
 
     def update_intensity(self, intensity):
         self.intensity = intensity
 
     def run(self):
-        print('In run')
         self.IS_RUNNING = True
 
         while self.IS_RUNNING:
@@ -186,6 +181,8 @@ class ProgressBarThread(QThread):
             self.signal.emit(i)
             i += 1
 
+        self.stop()
+
     def stop(self):
         self.IS_RUNNING = False
         self.signal.emit(0)
@@ -217,13 +214,19 @@ class TimeWatcher(QThread):
         self.stop_timer_signal.connect(self.timer.stop)
 
     def set_state(self, state):
+        if not self.IS_RUNNING:
+            return
+
         if state == 'idle' or state == 'service' or state == 'broken':
             self.state = state
             self.prev_time = time.time()
         else:
-            raise ValueError('Unknown state')
+            raise ValueError(f'Unknown state: {state}')
 
     def timeout(self):
+        if self.prev_time is None:
+            return
+
         new_time = time.time()
         secs = new_time - self.prev_time
         self.prev_time = new_time
@@ -244,6 +247,7 @@ class TimeWatcher(QThread):
         self.IS_RUNNING = False
 
         self.stop_timer_signal.emit()
+        self.state = 'idle'
 
 
 

@@ -58,9 +58,9 @@ class Window(QMainWindow):
         super().__init__()
 
         # Queueing system
-        self.X = 12
-        self.Y = 123
-        self.R = 12
+        self.X = 100
+        self.Y = 0.1
+        self.R = 0.1
         self.queueing_system = QueueingSystem(self.X, self.Y, self.R, random_state=None)
         self.output_precision = 5
 
@@ -103,6 +103,8 @@ class Window(QMainWindow):
         self.r_lineEdit = QLineEdit(self.r_splitter)
 
         # Outputs
+        self.state_label = QLabel(self)
+
         # Empirical S0, S1, S2 box
         self.s_empirical_layoutWidget = QWidget(self)
         self.s_empirical_gridLayout = QGridLayout(self.s_empirical_layoutWidget)
@@ -174,8 +176,8 @@ class Window(QMainWindow):
         self.y_lineEdit.editingFinished.connect(lambda: self.process_input(self.y_lineEdit.text(), self.Y, 'y'))
         self.r_lineEdit.editingFinished.connect(lambda: self.process_input(self.r_lineEdit.text(), self.R, 'r'))
 
-        self.repair_progressbar_value_signal.connect(lambda value: self.repair_progressBar.setValue(value))
-        self.service_progressbar_value_signal.connect(lambda value: self.service_progressBar.setValue(value))
+        self.repair_progressbar_value_signal.connect(lambda secs: self.repair_progressBar.setValue(secs))
+        self.service_progressbar_value_signal.connect(lambda secs: self.service_progressBar.setValue(secs))
         self.run_button.clicked.connect(self.run_button_clicked)
 
         self.repair_progressbar_thread = ProgressBarThread(self.repair_progressbar_value_signal)
@@ -186,6 +188,7 @@ class Window(QMainWindow):
 
         self.queueing_system.update_timer_signal.connect(self._update_output_empirical_characteristics)
         self.queueing_system.update_theoretical_characteristics_signal.connect(self._update_output_theoretical_characteristics)
+        self.queueing_system.update_state_signal.connect(lambda state: self.state_label.setText(str(state)))
 
         self.intensity_updated.connect(self._intensity_updated)
 
@@ -214,7 +217,6 @@ class Window(QMainWindow):
         self.A_empirical_lineEdit.setText(str(round(A, self.output_precision)))
         self.Q_empirical_lineEdit.setText(str(round(Q, self.output_precision)))
 
-    # TODO: UPDATE CHARACTERISTICS & CLEAR PREVIOUS
     def _intensity_updated(self):
         self.queueing_system.update_intensities(self.X, self.Y, self.R)
 
@@ -224,8 +226,7 @@ class Window(QMainWindow):
         self.A_empirical_lineEdit.setText("")
         self.Q_empirical_lineEdit.setText("")
 
-
-
+    # TODO: REMOVE WITH BUTTON
     def run_button_clicked(self):
         self.repair_progressbar_thread.set_secs(1)
         self.repair_progressbar_thread.start()
@@ -238,7 +239,6 @@ class Window(QMainWindow):
 
     def run_service_progressbar(self, secs):
         self.service_progressbar_thread.set_secs(secs)
-
         self.service_progressbar_thread.start()
 
     def changeGeometry(self):
@@ -249,7 +249,9 @@ class Window(QMainWindow):
         self.run_button.setGeometry(int(10 + 3 * self.buttons_width), 10, self.buttons_width, self.buttons_height)
 
         # Output
-        self.output.setGeometry(10, 20 + self.buttons_height, self.width - 10, self.height - 20 - self.buttons_height)
+        self.state_label.setGeometry(QRect(430, 100, 100, 100))
+        self.state_label.setText('state')
+        self.output.setGeometry(850, 20 + self.buttons_height, self.width - 10, self.height - 20 - self.buttons_height)
 
         # Outputs
         # Empirical S0, S1, S2 box
