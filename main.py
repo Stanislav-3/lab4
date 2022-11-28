@@ -58,9 +58,9 @@ class Window(QMainWindow):
         super().__init__()
 
         # Queueing system
-        self.X = 100
-        self.Y = 0.1
-        self.R = 0.1
+        self.X = 10
+        self.Y = 1
+        self.R = 1
         self.queueing_system = QueueingSystem(self.X, self.Y, self.R, random_state=None)
         self.output_precision = 5
 
@@ -181,17 +181,25 @@ class Window(QMainWindow):
 
         self.run_button.clicked.connect(self.run_button_clicked)
 
+        self.current_progressbar_thread = None
         self.repair_progressbar_thread = ProgressBarThread(self.repair_progressbar_value_signal)
         self.service_progressbar_thread = ProgressBarThread(self.service_progressbar_value_signal)
 
         self.queueing_system.break_down_signal.connect(self.run_repair_progressbar)
         self.queueing_system.service_event.start_timer_signal.connect(self.run_service_progressbar)
-        self.queueing_system.service_event.stop_timer_signal.connect(self.service_progressbar_thread.stop)
+
+        self.queueing_system.service_event.stop_timer_signal.connect(lambda: self._stop_service_progress_bar('stop timer signal'))
+        # self.queueing_system.break_down_signal.connect(lambda: self._stop_service_progress_bar('bread_down signal'))
 
         self.queueing_system.update_timer_signal.connect(self._update_output_empirical_characteristics)
         self.queueing_system.update_theoretical_characteristics_signal.connect(self._update_output_theoretical_characteristics)
+
         self.queueing_system.update_state_signal.connect(lambda state: self.state_label.setText(str(state)))
 
+        self.state = None
+        def _assign_state(state):
+            self.state = str(state)
+        self.queueing_system.update_state_signal.connect(lambda state: _assign_state(state))
         self.intensity_updated.connect(self._intensity_updated)
 
         # Test
@@ -233,16 +241,27 @@ class Window(QMainWindow):
         self.repair_progressbar_thread.set_secs(1)
         self.repair_progressbar_thread.start()
 
+    def _stop_service_progress_bar(self, text=None):
+        print(f'Stop service progressbar bar: {text}')
+        self.service_progressbar_thread.stop()
+        self.service_progressbar_value_signal.emit(0)
+
     def run_repair_progressbar(self, secs):
         print('Run repair progressbar')
+        # self.current_progressbar_thread = self.repair_progressbar_thread
+        self.service_progressbar_thread.stop()
+
         self.repair_progressbar_thread.set_secs(secs)
         self.repair_progressbar_thread.start()
 
-        self.service_progressbar_thread.stop()
-
     def run_service_progressbar(self, secs):
         print('Run service progressbar')
+        if self.state != 'idle' or self.state != 'service':
+            print('STATE', self.state)
+            return
+
         if self.repair_progressbar_thread.isRunning():
+            print('*' * 40 + 'TRIED TO RUN SERVICE PROGRESS BAR WHEN REPAIR PROGRESSBAR WAS RUNNING')
             return
 
         self.service_progressbar_thread.set_secs(secs)

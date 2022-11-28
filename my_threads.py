@@ -1,6 +1,7 @@
 from scipy.stats import expon
 from PyQt5.QtCore import QTimer, QThread, pyqtSignal
 import time
+from PyQt5 import QtCore
 
 
 class SimplestStream(QThread):
@@ -19,6 +20,7 @@ class SimplestStream(QThread):
 
         # timer
         self.timer = QTimer(self)
+        self.timer.setTimerType(QtCore.Qt.TimerType.PreciseTimer)
         self.timer.setSingleShot(True)
 
         # signals
@@ -73,6 +75,7 @@ class SimplestEvent(QThread):
 
         # timer
         self.timer = QTimer(self)
+        self.timer.setTimerType(QtCore.Qt.TimerType.PreciseTimer)
         self.timer.setSingleShot(True)
 
         # signals
@@ -85,11 +88,15 @@ class SimplestEvent(QThread):
         self.intensity = intensity
 
     def run(self):
+        print('SIMPLEST_EVENT.RUN(): START SERVICE')
         self.IS_RUNNING = True
         self.IS_FINISHED = False
 
         t = expon.rvs(scale=1 / self.intensity, random_state=self.random_state)
-        self.start_timer_signal.emit(float(t))
+
+        if self.IS_RUNNING:
+            print('>>SIMPLEST_EVENT.RUN(): EMIT SIGNAL')
+            self.start_timer_signal.emit(float(t))
 
     def event_finished(self):
         self.IS_RUNNING = False
@@ -101,7 +108,7 @@ class SimplestEvent(QThread):
         self.IS_RUNNING = False
 
         self.wait()
-        print('Request stopped to service')
+        print('SIMPLEST EVENT.STOP(): Request stopped to service')
 
     def isRunning(self) -> bool:
         return self.IS_RUNNING
@@ -133,6 +140,7 @@ class BreakDownEvent(QThread):
 
         # timer
         self.timer = QTimer(self)
+        self.timer.setTimerType(QtCore.Qt.TimerType.PreciseTimer)
         self.timer.setSingleShot(True)
 
         self.timer.timeout.connect(self.repair_signal.emit)
@@ -157,42 +165,63 @@ class BreakDownEvent(QThread):
         t = expon.rvs(scale=1 / self.intensity_repair, random_state=self.random_state)
         self.break_down_signal.emit(t)
         self.start_timer_signal.emit(t)
+        print('TIME WHEN BREAK DOWN: ', time.time())
 
     def stop(self):
         self.stop_timer_signal.emit()
 
 
 class ProgressBarThread(QThread):
+    start_timer_signal = pyqtSignal(float)
+    stop_timer_signal = pyqtSignal()
+
     def __init__(self, signal: pyqtSignal):
         super(ProgressBarThread, self).__init__()
 
         self.signal = signal
         self.interval = None
         self.IS_RUNNING = None
+        # self.time = None
+
+        self.timer = QTimer(self)
+        self.timer.setTimerType(QtCore.Qt.TimerType.PreciseTimer)
+        print(self.timer.thread())
+
+        self.start_timer_signal.connect(lambda secs: self.timer.start(secs * 1000))
+        self.stop_timer_signal.connect(self.timer.stop)
+
+        self.timer.timeout.connect(self.timeout)
+        self.count = 0
+
+    def timeout(self):
+        self.count += 1
+
+        if self.count <= 100 and self.IS_RUNNING:
+            self.signal.emit(self.count)
+        else:
+            self.stop()
 
     def set_secs(self, secs):
         self.interval = secs / 100
 
+    def start(self, priority: 'QThread.Priority' = QThread.InheritPriority) -> None:
+        self.IS_RUNNING = False
+        super(ProgressBarThread, self).start(priority)
+
     def run(self) -> None:
         self.IS_RUNNING = True
-
-        i = 1
-        while i <= 100 and self.IS_RUNNING:
-            time.sleep(self.interval)
-            self.signal.emit(i)
-            i += 1
-
-        self.stop()
+        self.start_timer_signal.emit(self.interval)
 
     def stop(self):
         self.IS_RUNNING = False
+        self.stop_timer_signal.emit()
+        self.count = 0
         self.signal.emit(0)
 
     def isRunning(self) -> bool:
         return self.IS_RUNNING
 
 
-# TODO: timers move to QThread
 class TimeWatcher(QThread):
     start_timer_signal = pyqtSignal(float)
     stop_timer_signal = pyqtSignal()
@@ -212,6 +241,7 @@ class TimeWatcher(QThread):
         self.interval = interval
 
         self.timer = QTimer(self)
+        self.timer.setTimerType(QtCore.Qt.TimerType.PreciseTimer)
         self.timer.timeout.connect(self.timeout)
 
         self.start_timer_signal.connect(lambda secs: self.timer.start(secs * 1000))
