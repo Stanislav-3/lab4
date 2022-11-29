@@ -1,7 +1,7 @@
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import QTimer, QThread
 from queueing_system import QueueingSystem
-from my_threads import ProgressBarThread
+from progressbar_thread import ProgressBarThread
 from PyQt5.QtCore import *
 import time
 import sys
@@ -58,9 +58,9 @@ class Window(QMainWindow):
         super().__init__()
 
         # Queueing system
-        self.X = 10
-        self.Y = 1
-        self.R = 1
+        self.X = 97
+        self.Y = 123
+        self.R = 90
         self.queueing_system = QueueingSystem(self.X, self.Y, self.R, random_state=None)
         self.output_precision = 5
 
@@ -242,12 +242,12 @@ class Window(QMainWindow):
         self.repair_progressbar_thread.start()
 
     def _stop_service_progress_bar(self, text=None):
-        print(f'Stop service progressbar bar: {text}')
+        # print('#'*25 + f'Stop service progressbar bar: {text}')
         self.service_progressbar_thread.stop()
         self.service_progressbar_value_signal.emit(0)
 
     def run_repair_progressbar(self, secs):
-        print('Run repair progressbar')
+        # print('#'*25 + 'Run repair progressbar')
         # self.current_progressbar_thread = self.repair_progressbar_thread
         self.service_progressbar_thread.stop()
 
@@ -255,13 +255,13 @@ class Window(QMainWindow):
         self.repair_progressbar_thread.start()
 
     def run_service_progressbar(self, secs):
-        print('Run service progressbar')
-        if self.state != 'idle' or self.state != 'service':
-            print('STATE', self.state)
-            return
+        # print('#'*25 + 'Run service progressbar')
+        # if self.state != 'idle' or self.state != 'service':
+        #     print('STATE', self.state)
+        #     return
 
         if self.repair_progressbar_thread.isRunning():
-            print('*' * 40 + 'TRIED TO RUN SERVICE PROGRESS BAR WHEN REPAIR PROGRESSBAR WAS RUNNING')
+            # print('*' * 40 + 'TRIED TO RUN SERVICE PROGRESS BAR WHEN REPAIR PROGRESSBAR WAS RUNNING')
             return
 
         self.service_progressbar_thread.set_secs(secs)
@@ -366,6 +366,9 @@ class Window(QMainWindow):
 
     def stopButtonClicked(self):
         self.queueing_system.stop()
+        self.service_progressbar_thread.stop()
+        self.repair_progressbar_thread.stop()
+
         good = self.queueing_system.finished \
             + self.queueing_system.rejected_on_break_down \
             + self.queueing_system.rejected_on_service \
