@@ -3,26 +3,21 @@
 from PyQt5.QtCore import QTimer, QThread, QObject, pyqtSignal
 from QS_streams import SimplestStream, SimplestEvent, BreakDownEvent
 from time_watcher import TimeWatcher
-import random
 import time
 
 
 class QueueingSystem(QThread):
-    # Signals
+    # signals
     new_request_signal = pyqtSignal()
     request_finished_signal = pyqtSignal()
-    break_down_signal = pyqtSignal(float)
-    repair_signal = pyqtSignal()
+    repair_finished_signal = pyqtSignal()
 
-    # new
-    start_service = pyqtSignal()
-
-    update_timer_signal = pyqtSignal(float, float, float, float, float)
+    update_empirical_characteristics_signal = pyqtSignal(float, float, float, float, float)
     update_theoretical_characteristics_signal = pyqtSignal(float, float, float, float, float)
 
     update_state_signal = pyqtSignal(str)
 
-    def __init__(self, X, Y, R, random_state=None) -> None:
+    def __init__(self, X, Y, B, R) -> None:
         # Super class init
         super(QueueingSystem, self).__init__()
         self.IS_RUNNING = False
@@ -34,10 +29,9 @@ class QueueingSystem(QThread):
         self.X = X
         self.Y = Y
         self.R = R
-        self.random_state = random_state
+        self.B = B
 
         # Statistics
-        self.state = None
         self.requests = 0
         self.finished = 0
         self.rejected_on_break_down = 0
@@ -45,9 +39,10 @@ class QueueingSystem(QThread):
         self.rejected_on_service = 0
         self.break_downs = 0
 
-        self.idle_time = 0
-        self.service_time = 0
-        self.broken_time = 0
+        self.state = None
+        self.idle_time = 0.
+        self.service_time = 0.
+        self.broken_time = 0.
 
         # Characteristics
         self.s0 = None
@@ -62,23 +57,22 @@ class QueueingSystem(QThread):
         self.A_empirical = None
         self.Q_empirical = None
 
+        # Streams & events
+        self.request_stream = SimplestStream(X, self.new_request_signal)
+        self.service_event = SimplestEvent(Y, self.request_finished_signal)
+        self.break_stream = BreakDownEvent(self.B, self.R, self.repair_finished_signal)
+
         # Signal connections
         self.new_request_signal.connect(self.new_request)
         self.request_finished_signal.connect(self.request_finished)
+        self.repair_finished_signal.connect(lambda: self.break_down(repaired=True))
 
-        self.break_down_signal.connect(lambda secs: self.break_down(repaired=False))
-        self.repair_signal.connect(lambda: self.break_down(repaired=True))
-
-        # Streams & events
-        self.request_stream = SimplestStream(X, self.new_request_signal, random_state=self.random_state)
-        self.service_event = SimplestEvent(Y, self.request_finished_signal, random_state=self.random_state)
-        self.break_stream = BreakDownEvent(self.X, self.R, self.break_down_signal, self.repair_signal,
-                                           self.service_event.start_timer_signal, random_state=self.random_state)
+        self.break_stream.start_repair_timer_signal.connect(lambda: self.break_down(repaired=False))
 
         # States
         self.is_channel_blocked = False
 
-        self.timer_update_interval_secs = 0.001
+        self.timer_update_interval_secs = 0.01
 
         self.time_watcher = TimeWatcher(self.timer_update_interval_secs)
         self.time_watcher.update_idle_time_signal.connect(lambda secs: self.update_time_and_characteristics('idle', secs))
@@ -119,31 +113,36 @@ class QueueingSystem(QThread):
         # A = self.finished / (time.time() - self.start_time)
         Q = A / self.X
 
-        self.update_timer_signal.emit(s0, s1, s2, A, Q)
+        self.update_empirical_characteristics_signal.emit(s0, s1, s2, A, Q)
 
+    # TODO: UPDATE
     def update_theoretical_characteristics(self):
-        self.s1 = 1 / (1 + (self.X + self.Y) / self.X + self.X / self.R)
-        self.s2 = 1 / (1 + (self.R * self.Y) / self.X**2 + 2 * self.R / self.X)
-        self.s0 = 1 - self.s1 - self.s2
+        self.s0 = 1 / (1
+                       + self.X / (self.Y + self.B)
+                       + self.B / self.R * (1 + self.X / (self.Y + self.B)))
+        self.s1 = 0
+        self.s2 = 0
 
         self.Q = self.s0
         self.A = self.X * self.Q
 
         self.update_theoretical_characteristics_signal.emit(self.s0, self.s1, self.s2, self.A, self.Q)
 
-    def update_intensities(self, X, Y, R):
+    def update_intensities(self, X, Y, B, R):
         was_running = self.IS_RUNNING
         if was_running:
             self.stop()
+        #     todo: stop other streams too
 
         self.X = X
         self.Y = Y
+        self.B = B
         self.R = R
         self.update_theoretical_characteristics()
 
         self.request_stream.update_intensity(self.X)
         self.service_event.update_intensity(self.Y)
-        self.break_stream.update_intensities(self.X, self.R)
+        self.break_stream.update_intensities(self.B, self.R)
 
         self.requests = 0
         self.finished = 0
@@ -167,17 +166,18 @@ class QueueingSystem(QThread):
             return
 
         # break down
+        if self.state == 'broken':
+            return
         self.update_state_signal.emit('broken')
 
         print('QUEUEING SYSTEM: Broke down')
         self.service_event.stop()
-        self.wait()
+        self.is_channel_blocked = True
+        self.break_downs += 1
+        # self.wait()
 
         if not self.service_event.isFinished():
             self.rejected_on_break_down += 1
-
-        self.is_channel_blocked = True
-        self.break_downs += 1
 
     def new_request(self):
         self.requests += 1
@@ -195,6 +195,9 @@ class QueueingSystem(QThread):
         self.service_event.start()
 
     def request_finished(self):
+        if self.state != 'service':
+            return
+
         self.update_state_signal.emit('idle')
 
         print('QUEUEING SYSTEM: Request finished')
@@ -207,6 +210,8 @@ class QueueingSystem(QThread):
         self.update_state_signal.emit('idle')
 
         self.request_stream.start()
+        self.break_stream.start()
+
         self.start_time = time.time()
 
         self.time_watcher.start()

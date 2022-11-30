@@ -49,29 +49,31 @@ class Test(QThread):
 
 
 class Window(QMainWindow):
-    repair_progressbar_value_signal = pyqtSignal(int)
-    service_progressbar_value_signal = pyqtSignal(int)
+    set_repair_progressbar_value_signal = pyqtSignal(int)
+    set_service_progressbar_value_signal = pyqtSignal(int)
 
-    intensity_updated = pyqtSignal()
+    intensity_updated_signal = pyqtSignal()
 
     def __init__(self):
         super().__init__()
 
         # Queueing system
-        self.X = 97
-        self.Y = 123
-        self.R = 90
-        self.queueing_system = QueueingSystem(self.X, self.Y, self.R, random_state=None)
+        self.X = 75.
+        self.Y = 150.
+        self.B = 10.
+        self.R = 100.
+        self.queueing_system = QueueingSystem(self.X, self.Y, self.B, self.R)
         self.output_precision = 5
 
         # QMainWindow
-        self.top = 15000
-        self.left = 150
+        desktop_rect = QApplication.desktop().screenGeometry()
         self.width = 1200
         self.height = 500
+        self.left = round((desktop_rect.width() - self.width) / 2)
+        self.top = round((desktop_rect.height() - self.height) / 2)
 
         self.setWindowTitle("Queueing system")
-        self.setGeometry(self.top, self.left, self.width, self.height)
+        self.setGeometry(self.left, self.top, self.width, self.height)
 
         # QWidget properties
         self.buttons_width = 100
@@ -96,6 +98,11 @@ class Window(QMainWindow):
         self.y_splitter.setOrientation(Qt.Horizontal)
         self.y_label = QLabel(self.y_splitter)
         self.y_lineEdit = QLineEdit(self.y_splitter)
+
+        self.b_splitter = QSplitter(self)
+        self.b_splitter.setOrientation(Qt.Horizontal)
+        self.b_label = QLabel(self.b_splitter)
+        self.b_lineEdit = QLineEdit(self.b_splitter)
 
         self.r_splitter = QSplitter(self)
         self.r_splitter.setOrientation(Qt.Horizontal)
@@ -174,25 +181,29 @@ class Window(QMainWindow):
 
         self.x_lineEdit.editingFinished.connect(lambda: self.process_input(self.x_lineEdit.text(), self.X, 'x'))
         self.y_lineEdit.editingFinished.connect(lambda: self.process_input(self.y_lineEdit.text(), self.Y, 'y'))
+        self.b_lineEdit.editingFinished.connect(lambda: self.process_input(self.b_lineEdit.text(), self.B, 'b'))
         self.r_lineEdit.editingFinished.connect(lambda: self.process_input(self.r_lineEdit.text(), self.R, 'r'))
 
-        self.service_progressbar_value_signal.connect(lambda secs: self.service_progressBar.setValue(secs))
-        self.repair_progressbar_value_signal.connect(lambda secs: self.repair_progressBar.setValue(secs))
+        self.set_service_progressbar_value_signal.connect(lambda secs: self.service_progressBar.setValue(secs))
+        self.set_repair_progressbar_value_signal.connect(lambda secs: self.repair_progressBar.setValue(secs))
 
         self.run_button.clicked.connect(self.run_button_clicked)
 
         self.current_progressbar_thread = None
-        self.repair_progressbar_thread = ProgressBarThread(self.repair_progressbar_value_signal)
-        self.service_progressbar_thread = ProgressBarThread(self.service_progressbar_value_signal)
+        self.repair_progressbar_thread = ProgressBarThread(self.set_repair_progressbar_value_signal)
+        self.service_progressbar_thread = ProgressBarThread(self.set_service_progressbar_value_signal)
 
-        self.queueing_system.break_down_signal.connect(self.run_repair_progressbar)
-        self.queueing_system.service_event.start_timer_signal.connect(self.run_service_progressbar)
+        # progress bar
+        # self.queueing_system.break_down_signal.connect(self.run_repair_progressbar)
+        # self.queueing_system.service_event.start_break_down_timer_signal.connect(self.run_service_progressbar)
+        #
+        # self.queueing_system.service_event.stop_break_down_timer_signal.connect(lambda: self._stop_service_progress_bar('stop timer signal'))
+        # # self.queueing_system.break_down_signal.connect(lambda: self._stop_service_progress_bar('bread_down signal'))
+        #
+        # self.queueing_system.update_timer_signal.connect(self._update_output_empirical_characteristics)
 
-        self.queueing_system.service_event.stop_timer_signal.connect(lambda: self._stop_service_progress_bar('stop timer signal'))
-        # self.queueing_system.break_down_signal.connect(lambda: self._stop_service_progress_bar('bread_down signal'))
-
-        self.queueing_system.update_timer_signal.connect(self._update_output_empirical_characteristics)
         self.queueing_system.update_theoretical_characteristics_signal.connect(self._update_output_theoretical_characteristics)
+        self.queueing_system.update_empirical_characteristics_signal.connect(self._update_output_empirical_characteristics)
 
         self.queueing_system.update_state_signal.connect(lambda state: self.state_label.setText(str(state)))
 
@@ -200,7 +211,9 @@ class Window(QMainWindow):
         def _assign_state(state):
             self.state = str(state)
         self.queueing_system.update_state_signal.connect(lambda state: _assign_state(state))
-        self.intensity_updated.connect(self._intensity_updated)
+
+
+        self.intensity_updated_signal.connect(self._intensity_updated)
 
         # Test
         self.test_my = Test(self.queueing_system, self.output, self)
@@ -228,7 +241,7 @@ class Window(QMainWindow):
         self.Q_empirical_lineEdit.setText(str(round(Q, self.output_precision)))
 
     def _intensity_updated(self):
-        self.queueing_system.update_intensities(self.X, self.Y, self.R)
+        self.queueing_system.update_intensities(self.X, self.Y, self.B, self.R)
 
         self.s0_empirical_lineEdit.setText("")
         self.s1_empirical_lineEdit.setText("")
@@ -244,7 +257,7 @@ class Window(QMainWindow):
     def _stop_service_progress_bar(self, text=None):
         # print('#'*25 + f'Stop service progressbar bar: {text}')
         self.service_progressbar_thread.stop()
-        self.service_progressbar_value_signal.emit(0)
+        self.set_service_progressbar_value_signal.emit(0)
 
     def run_repair_progressbar(self, secs):
         # print('#'*25 + 'Run repair progressbar')
@@ -325,6 +338,7 @@ class Window(QMainWindow):
         # Inputs
         self.x_splitter.setGeometry(QRect(40, 110, 138, 21))
         self.y_splitter.setGeometry(QRect(420, 80, 138, 21))
+        self.b_splitter.setGeometry(QRect(200, 190, 138, 21))
         self.r_splitter.setGeometry(QRect(420, 190, 138, 21))
 
         # Progress bar
@@ -341,6 +355,9 @@ class Window(QMainWindow):
 
         self.y_label.setText('Y:')
         self.y_lineEdit.setText(str(self.Y))
+
+        self.b_label.setText('B:')
+        self.b_lineEdit.setText(str(self.B))
 
         self.r_label.setText('R:')
         self.r_lineEdit.setText(str(self.R))
@@ -390,7 +407,7 @@ class Window(QMainWindow):
 
     def process_input(self, text: str, prev_number: int, _type: str):
         def inner():
-            number = None
+            # number = None
 
             try:
                 number = float(text)
@@ -413,19 +430,22 @@ class Window(QMainWindow):
         self.prev_text = text
 
         if _type == 'x':
-            self.X, update = inner()
+            self.X, is_updated = inner()
             self.x_lineEdit.setText(str(self.X))
         elif _type == 'y':
-            self.Y, update = inner()
+            self.Y, is_updated = inner()
             self.y_lineEdit.setText(str(self.Y))
+        elif _type == 'b':
+            self.B, is_updated = inner()
+            self.b_lineEdit.setText(str(self.B))
         elif _type == 'r':
-            self.R, update = inner()
+            self.R, is_updated = inner()
             self.r_lineEdit.setText(str(self.R))
         else:
             raise ValueError("Unexpected _type argument")
 
-        if update:
-            self.intensity_updated.emit()
+        if is_updated:
+            self.intensity_updated_signal.emit()
 
 
 App = QApplication(sys.argv)
