@@ -1,7 +1,7 @@
 # import time
 # import scipy
 from PyQt5.QtCore import QTimer, QThread, QObject, pyqtSignal
-from QS_streams import SimplestStream, SimplestEvent, BreakDownEvent
+from QS_streams import SimplestStream, SimplestEvent, BreakDownStream
 from time_watcher import TimeWatcher
 import time
 
@@ -40,6 +40,7 @@ class QueueingSystem(QThread):
         self.break_downs = 0
 
         self.state = None
+        self.time = None
         self.idle_time = 0.
         self.service_time = 0.
         self.broken_time = 0.
@@ -58,9 +59,9 @@ class QueueingSystem(QThread):
         self.Q_empirical = None
 
         # Streams & events
-        self.request_stream = SimplestStream(X, self.new_request_signal)
-        self.service_event = SimplestEvent(Y, self.request_finished_signal)
-        self.break_stream = BreakDownEvent(self.B, self.R, self.repair_finished_signal)
+        self.request_stream = SimplestStream(self.X, self.new_request_signal)
+        self.service_event = SimplestEvent(self.Y, self.request_finished_signal)
+        self.break_stream = BreakDownStream(self.B, self.R, self.repair_finished_signal)
 
         # Signal connections
         self.new_request_signal.connect(self.new_request)
@@ -88,6 +89,7 @@ class QueueingSystem(QThread):
         if state != 'idle' and state != 'service' and state != 'broken':
             raise Exception(f'Unknown state: {state}')
 
+        print(f'QUEUEING SYSTEM: update_state({state})')
         self.state = state
         self.time_watcher.set_state(self.state)
 
@@ -119,7 +121,8 @@ class QueueingSystem(QThread):
     def update_theoretical_characteristics(self):
         self.s0 = 1 / (1
                        + self.X / (self.Y + self.B)
-                       + self.B / self.R * (1 + self.X / (self.Y + self.B)))
+                       + self.B / self.R
+                       + self.B / self.R * (self.X / (self.Y + self.B)))
         self.s1 = 0
         self.s2 = 0
 
@@ -130,6 +133,7 @@ class QueueingSystem(QThread):
 
     def update_intensities(self, X, Y, B, R):
         was_running = self.IS_RUNNING
+
         if was_running:
             self.stop()
         #     todo: stop other streams too
@@ -146,10 +150,10 @@ class QueueingSystem(QThread):
 
         self.requests = 0
         self.finished = 0
+        self.break_downs = 0
         self.rejected_on_break_down = 0
         self.rejected_on_request = 0
         self.rejected_on_service = 0
-        self.break_downs = 0
 
         self.idle_time = 0
         self.service_time = 0
@@ -159,61 +163,60 @@ class QueueingSystem(QThread):
             self.start()
 
     def break_down(self, repaired: bool):
+        t = time.time()
         if repaired:
             self.is_channel_blocked = False
             self.update_state_signal.emit('idle')
             print('QUEUEING SYSTEM: Repaired')
             return
 
-        # break down
-        if self.state == 'broken':
-            return
-        self.update_state_signal.emit('broken')
-
         print('QUEUEING SYSTEM: Broke down')
-        self.service_event.stop()
         self.is_channel_blocked = True
+        self.service_event.stop()
         self.break_downs += 1
+
+        self.update_state_signal.emit('broken')
         # self.wait()
 
         if not self.service_event.isFinished():
             self.rejected_on_break_down += 1
 
     def new_request(self):
+        self.time = time.time()
         self.requests += 1
 
-        if self.is_channel_blocked or self.state != 'idle':
+        # if self.is_channel_blocked or self.state != 'idle':
+        if self.is_channel_blocked:
             self.rejected_on_request += 1
             # print('QUEUEING SYSTEM: Request rejected')
             return
 
-        self.update_state_signal.emit('service')
         print('QUEUEING SYSTEM: Request started to service')
 
         self.is_channel_blocked = True
 
         self.service_event.start()
+        self.update_state_signal.emit('service')
 
     def request_finished(self):
-        if self.state != 'service':
-            return
-
-        self.update_state_signal.emit('idle')
+        self.time = time.time()
 
         print('QUEUEING SYSTEM: Request finished')
 
         self.finished += 1
         self.is_channel_blocked = False
 
+        self.update_state_signal.emit('idle')
+
     def run(self):
         self.IS_RUNNING = True
-        self.update_state_signal.emit('idle')
 
         self.request_stream.start()
         self.break_stream.start()
 
         self.start_time = time.time()
 
+        self.update_state_signal.emit('idle')
         self.time_watcher.start()
 
     def stop(self):

@@ -39,9 +39,9 @@ class SimplestStream(QThread):
 
     def stop(self):
         self.IS_RUNNING = False
-        self.wait()
 
         self.stop_timer_signal.emit()
+        self.wait()
 
     def isRunning(self) -> bool:
         return self.IS_RUNNING
@@ -80,17 +80,23 @@ class SimplestEvent(QThread):
         self.start_timer_signal.emit(float(t))
 
     def event_finished(self):
-        # print('SIMPLEST EVENT: Request finished')
+        if not self.IS_RUNNING:
+            return
+
+        # print('SIMPLEST EVENT: Event_finished()')
+
         self.IS_RUNNING = False
         self.IS_FINISHED = True
+
         self.finished_signal.emit()
 
     def stop(self):
         self.IS_RUNNING = False
-        self.wait()
 
         self.stop_timer_signal.emit()
-        # print('SIMPLEST EVENT.STOP(): Request stopped to service')
+
+        self.wait()
+        print('SIMPLEST EVENT: Stop()')
 
     def isRunning(self) -> bool:
         return self.IS_RUNNING
@@ -99,20 +105,20 @@ class SimplestEvent(QThread):
         return self.IS_FINISHED
 
 
-class BreakDownEvent(QThread):
+class BreakDownStream(QThread):
     start_break_down_timer_signal = pyqtSignal(float)
     stop_break_down_timer_signal = pyqtSignal()
 
     start_repair_timer_signal = pyqtSignal(float)
     stop_repair_timer_signal = pyqtSignal()
 
-    def __init__(self, intensity_break_down: float, intensity_repair: float, repair_signal: pyqtSignal):
-        super(BreakDownEvent, self).__init__()
-        self.IS_RUNNING = None
+    def __init__(self, intensity_break_down: float, intensity_repair: float, repaired_signal: pyqtSignal):
+        super(BreakDownStream, self).__init__()
+        self.IS_RUNNING = False
 
         self.intensity_break_down = intensity_break_down
         self.intensity_repair = intensity_repair
-        self.repair_signal = repair_signal
+        self.repaired_signal = repaired_signal
 
         # break down timer
         self.timer_break_down = QTimer(self)
@@ -140,7 +146,7 @@ class BreakDownEvent(QThread):
         self.IS_RUNNING = True
 
         while self.IS_RUNNING:
-            self.usleep(15)
+            # self.usleep(15)
             if self.timer_break_down.isActive() or self.timer_repair.isActive() or not self.isRunning():
                 continue
 
@@ -148,15 +154,23 @@ class BreakDownEvent(QThread):
             self.start_break_down_timer_signal.emit(float(t))
 
     def run_repair(self):
+        if not self.IS_RUNNING:
+            return
+
         t = expon.rvs(scale=1 / self.intensity_repair)
         self.start_repair_timer_signal.emit(t)
 
     def finish_repair(self):
-        self.repair_signal.emit()
+        if not self.IS_RUNNING:
+            return
+
+        self.repaired_signal.emit()
 
     def stop(self):
-        self.stop_break_down_timer_signal.emit()
         self.IS_RUNNING = False
+
+        self.stop_break_down_timer_signal.emit()
+        self.stop_repair_timer_signal.emit()
 
     def isRunning(self) -> bool:
         return self.IS_RUNNING
