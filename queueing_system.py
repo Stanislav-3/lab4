@@ -9,13 +9,13 @@ import time
 class QueueingSystem(QThread):
     # signals
     new_request_signal = pyqtSignal()
-    request_finished_signal = pyqtSignal()
 
-    stop_service_signal = pyqtSignal()
     start_service_signal = pyqtSignal(float)
+    stop_service_signal = pyqtSignal()
+    finish_service_signal = pyqtSignal()
 
-    break_signal = pyqtSignal(float)
-    repair_finished_signal = pyqtSignal()
+    start_repair_signal = pyqtSignal(float)
+    finish_repair_signal = pyqtSignal()
 
     update_empirical_characteristics_signal = pyqtSignal(float, float, float, float, float)
     update_theoretical_characteristics_signal = pyqtSignal(float, float, float, float, float)
@@ -39,9 +39,7 @@ class QueueingSystem(QThread):
         # Statistics
         self.requests = 0
         self.finished = 0
-        self.rejected_on_break_down = 0
-        self.rejected_on_request = 0
-        self.rejected_on_service = 0
+        self.rejected = 0
         self.break_downs = 0
 
         self.state = None
@@ -70,16 +68,16 @@ class QueueingSystem(QThread):
         # Streams & events
         self.request_stream = SimplestStream(self.X, self.new_request_signal)
         self.service_event = SimplestEvent(self.Y, self.start_service_signal, self.stop_service_signal,
-                                           self.request_finished_signal)
-        self.break_stream = BreakDownStream(self.B, self.R, self.break_signal, self.repair_finished_signal)
+                                           self.finish_service_signal)
+        self.break_stream = BreakDownStream(self.B, self.R, self.start_repair_signal, self.finish_repair_signal)
 
         # Signal connections
         self.new_request_signal.connect(self.new_request)
-        self.request_finished_signal.connect(self.request_finished)
-        self.repair_finished_signal.connect(lambda: self.break_down(repaired=True))
+        self.finish_service_signal.connect(self.request_finished)
+        self.stop_service_signal.connect(self.service_interrupted)
 
-        # self.break_stream.start_repair_timer_signal.connect(lambda: self.break_down(repaired=False))
-        self.break_signal.connect(lambda: self.break_down(repaired=False))
+        self.start_repair_signal.connect(self.start_repair)
+        self.finish_repair_signal.connect(self.finish_repair)
 
         # States
         self.is_channel_blocked = False
@@ -166,9 +164,7 @@ class QueueingSystem(QThread):
         self.requests = 0
         self.finished = 0
         self.break_downs = 0
-        self.rejected_on_break_down = 0
-        self.rejected_on_request = 0
-        self.rejected_on_service = 0
+        self.rejected = 0
 
         self.idle_time = 0
         self.service_time = 0
@@ -177,15 +173,15 @@ class QueueingSystem(QThread):
         if was_running:
             self.start()
 
-    def break_down(self, repaired: bool):
-        self.state_time = time.time()
+    def service_interrupted(self):
+        self.rejected += 1
 
-        if repaired:
-            self.is_channel_blocked = False
-            self.update_state_signal.emit('idle')
-            print('QUEUEING SYSTEM: Repaired')
-            return
+    def finish_repair(self):
+        print('QUEUEING SYSTEM: Repaired')
+        self.is_channel_blocked = False
+        self.update_state_signal.emit('idle')
 
+    def start_repair(self):
         print('QUEUEING SYSTEM: Broke down')
         self.is_channel_blocked = True
         self.service_event.stop()
@@ -193,9 +189,6 @@ class QueueingSystem(QThread):
 
         self.update_state_signal.emit('broken')
         # self.wait()
-
-        if not self.service_event.isFinished():
-            self.rejected_on_break_down += 1
 
     def new_request(self):
         self.state_time = time.time()
@@ -209,7 +202,7 @@ class QueueingSystem(QThread):
         # print(f'Delta: {self.new_request_delta_time_sum / self.requests}')
 
         if self.is_channel_blocked:
-            self.rejected_on_request += 1
+            self.rejected += 1
             # print('QUEUEING SYSTEM: Request rejected')
             return
 
@@ -250,9 +243,6 @@ class QueueingSystem(QThread):
         self.service_event.stop()
         self.break_stream.stop()
         self.wait()
-
-        if self.is_channel_blocked and not self.service_event.isFinished():
-            self.rejected_on_service += 1
 
         self.is_channel_blocked = False
         self.update_state_signal.emit('idle')

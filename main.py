@@ -191,7 +191,7 @@ class Window(QMainWindow):
         self.service_progressbar_thread = ProgressBarThread(self.set_service_progressbar_value_signal)
 
         # progress bar
-        self.queueing_system.break_signal.connect(self.run_repair_progressbar)
+        self.queueing_system.start_repair_signal.connect(self.run_repair_progressbar)
         self.queueing_system.start_service_signal.connect(self.run_service_progressbar)
         self.queueing_system.stop_service_signal.connect(self.service_progressbar_thread.stop)
 
@@ -356,17 +356,11 @@ class Window(QMainWindow):
         self.service_progressbar_thread.stop()
         self.repair_progressbar_thread.stop()
 
-        good = self.queueing_system.finished \
-            + self.queueing_system.rejected_on_break_down \
-            + self.queueing_system.rejected_on_service \
-            + self.queueing_system.rejected_on_request \
-            == self.queueing_system.requests
+        good = self.queueing_system.finished + self.queueing_system.rejected == self.queueing_system.requests
 
         self.output.setText(f'X: {self.queueing_system.X}, Y: {self.queueing_system.Y}, R: {self.queueing_system.R}\n'
                             f'\nRequests: {self.queueing_system.requests}\n'
-                            f'Rejected_on_request: {self.queueing_system.rejected_on_request}\n'
-                            f'Rejected_on_break_down: {self.queueing_system.rejected_on_break_down}\n'
-                            f'Rejected_on_service: {self.queueing_system.rejected_on_service}\n'
+                            f'Rejected: {self.queueing_system.rejected}\n'
                             f'Finished: {self.queueing_system.finished}\n'
                             f'Break downs: {self.queueing_system.break_downs}\n'
                             f'\nGood?: {good} ')

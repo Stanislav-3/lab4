@@ -85,15 +85,15 @@ class SimplestEvent(QThread):
 
 class BreakDownStream(QThread):
     def __init__(self, intensity_break_down: float, intensity_repair: float,
-                 broke_signal: pyqtSignal, repaired_signal: pyqtSignal):
+                 start_repair_signal: pyqtSignal, finish_repair_signal: pyqtSignal):
         super(BreakDownStream, self).__init__()
         self.IS_RUNNING = False
 
         self.intensity_break_down = intensity_break_down
         self.intensity_repair = intensity_repair
 
-        self.break_signal = broke_signal
-        self.repaired_signal = repaired_signal
+        self.start_repair_signal = start_repair_signal
+        self.finish_repair_signal = finish_repair_signal
 
     def update_intensities(self, intensity_break_down, intensity_repair):
         self.intensity_break_down = intensity_break_down
@@ -110,13 +110,13 @@ class BreakDownStream(QThread):
                 break
 
             t = expon.rvs(scale=1 / self.intensity_repair)
-            self.break_signal.emit(float(t))
+            self.start_repair_signal.emit(float(t))
             self.usleep(int(t * 10**6))
 
             if not self.IS_RUNNING:
                 return
 
-            self.repaired_signal.emit()
+            self.finish_repair_signal.emit()
 
     def stop(self):
         self.IS_RUNNING = False
