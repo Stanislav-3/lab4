@@ -30,12 +30,22 @@ class SimplestStream(QThread):
     def run(self):
         self.IS_RUNNING = True
 
-        while self.IS_RUNNING:
-            if self.timer.isActive():
-                continue
+        # while self.IS_RUNNING:
+        #     if self.timer.isActive():
+        #         print('threre')
+        #         continue
+        #
+        #     t = expon.rvs(scale=1 / self.intensity)
+        #     print('emit', t, time.time())
+        #     self.start_timer_signal.emit(float(t))
 
+        while self.IS_RUNNING:
             t = expon.rvs(scale=1 / self.intensity)
-            self.start_timer_signal.emit(float(t))
+
+            self.usleep(int(t * 10**6))
+
+            if self.IS_RUNNING:
+                self.signal.emit()
 
     def stop(self):
         self.IS_RUNNING = False
@@ -77,13 +87,16 @@ class SimplestEvent(QThread):
         self.IS_FINISHED = False
 
         t = expon.rvs(scale=1 / self.intensity)
-        self.start_timer_signal.emit(float(t))
+        # self.start_timer_signal.emit(float(t))
+        self.usleep(int(t * 10**6))
+
+        self.event_finished()
 
     def event_finished(self):
         if not self.IS_RUNNING:
             return
 
-        # print('SIMPLEST EVENT: Event_finished()')
+        # print('SIMPLEST EVENT: event_finished()')
 
         self.IS_RUNNING = False
         self.IS_FINISHED = True
@@ -96,7 +109,7 @@ class SimplestEvent(QThread):
         self.stop_timer_signal.emit()
 
         self.wait()
-        print('SIMPLEST EVENT: Stop()')
+        # print('SIMPLEST EVENT: stop()')
 
     def isRunning(self) -> bool:
         return self.IS_RUNNING
@@ -112,12 +125,15 @@ class BreakDownStream(QThread):
     start_repair_timer_signal = pyqtSignal(float)
     stop_repair_timer_signal = pyqtSignal()
 
-    def __init__(self, intensity_break_down: float, intensity_repair: float, repaired_signal: pyqtSignal):
+    def __init__(self, intensity_break_down: float, intensity_repair: float,
+                 broke_signal: pyqtSignal, repaired_signal: pyqtSignal):
         super(BreakDownStream, self).__init__()
         self.IS_RUNNING = False
 
         self.intensity_break_down = intensity_break_down
         self.intensity_repair = intensity_repair
+
+        self.break_signal = broke_signal
         self.repaired_signal = repaired_signal
 
         # break down timer
@@ -145,13 +161,26 @@ class BreakDownStream(QThread):
     def run(self):
         self.IS_RUNNING = True
 
-        while self.IS_RUNNING:
-            # self.usleep(15)
-            if self.timer_break_down.isActive() or self.timer_repair.isActive() or not self.isRunning():
-                continue
+        # while self.IS_RUNNING:
+        #     if self.timer_break_down.isActive() or self.timer_repair.isActive() or not self.isRunning():
+        #         continue
+        #
+        #     t = expon.rvs(scale=1 / self.intensity_break_down)
+        #     self.start_break_down_timer_signal.emit(float(t))
 
+        while self.IS_RUNNING:
             t = expon.rvs(scale=1 / self.intensity_break_down)
-            self.start_break_down_timer_signal.emit(float(t))
+            self.usleep(int(t * 10**6))
+
+            if not self.isRunning():
+                break
+
+            self.break_signal.emit()
+
+            t = expon.rvs(scale=1 / self.intensity_repair)
+            self.usleep(int(t * 10**6))
+
+            self.finish_repair()
 
     def run_repair(self):
         if not self.IS_RUNNING:

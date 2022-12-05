@@ -58,7 +58,7 @@ class Window(QMainWindow):
         super().__init__()
 
         # Queueing system
-        self.X = 75.
+        self.X = 10.
         self.Y = 150.
         self.B = 10.
         self.R = 100.
