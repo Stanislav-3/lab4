@@ -58,10 +58,10 @@ class Window(QMainWindow):
         super().__init__()
 
         # Queueing system
-        self.X = 10.
-        self.Y = 1.
-        self.B = 0.2
-        self.R = 1.
+        self.X = 1000.
+        self.Y = 200.
+        self.B = 100.
+        self.R = 250.
         self.queueing_system = QueueingSystem(self.X, self.Y, self.B, self.R)
         self.output_precision = 5
 
@@ -205,8 +205,6 @@ class Window(QMainWindow):
         def _assign_state(state):
             self.state = str(state)
         self.queueing_system.update_state_signal.connect(lambda state: _assign_state(state))
-
-
         self.intensity_updated_signal.connect(self._intensity_updated)
 
         # Test
@@ -243,11 +241,11 @@ class Window(QMainWindow):
         self.A_empirical_lineEdit.setText("")
         self.Q_empirical_lineEdit.setText("")
 
-    def run_repair_progressbar(self, secs):
+    def run_repair_progressbar(self, secs, *args):
         self.repair_progressbar_thread.set_secs(secs)
         self.repair_progressbar_thread.start()
 
-    def run_service_progressbar(self, secs):
+    def run_service_progressbar(self, secs, *args):
         self.service_progressbar_thread.set_secs(secs)
         self.service_progressbar_thread.start()
 

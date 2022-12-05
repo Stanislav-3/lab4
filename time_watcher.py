@@ -11,12 +11,10 @@ class TimeWatcher(QThread):
 
     def __init__(self, interval: float):
         super(TimeWatcher, self).__init__()
-
         self.IS_RUNNING = False
 
         self.state = 'idle'
-        self.new_state_time = None
-        self.prev_time = None
+        self.prev_state_time = None
 
         self.interval = interval
 
@@ -31,26 +29,34 @@ class TimeWatcher(QThread):
         if not self.IS_RUNNING:
             return
 
+        if not self.prev_state_time:
+            self.state = state
+            self.prev_state_time = _time
+
         if state != 'idle' and state != 'service' and state != 'broken':
             raise ValueError(f'Unknown state: {state}')
 
+        delta = _time - self.prev_state_time
+        prev_state = self.state
+
         self.state = state
-        self.new_state_time = _time
-        self.prev_time = _time
+        self.prev_state_time = _time
+
+        self.update_time_signal.emit(prev_state, delta)
 
     def timeout(self):
-        if self.prev_time is None:
+        if self.prev_state_time is None:
             return
 
         new_time = time.time()
-        secs = new_time - self.prev_time
-        self.prev_time = new_time
+        secs = new_time - self.prev_state_time
+        self.prev_state_time = new_time
 
         self.update_time_signal.emit(self.state, secs)
 
     def run(self):
         self.IS_RUNNING = True
-        self.start_timer_signal.emit(self.interval)
+        # self.start_timer_signal.emit(self.interval)
 
     def stop(self):
         self.IS_RUNNING = False

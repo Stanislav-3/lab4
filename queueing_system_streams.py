@@ -24,7 +24,7 @@ class SimplestStream(QThread):
             self.usleep(int(t * 10**6))
 
             if self.IS_RUNNING:
-                self.signal.emit()
+                self.signal.emit(time.time())
 
     def stop(self):
         self.IS_RUNNING = False
@@ -54,7 +54,7 @@ class SimplestEvent(QThread):
         self.IS_FINISHED = False
 
         t = expon.rvs(scale=1 / self.intensity)
-        self.start_service_signal.emit(float(t))
+        self.start_service_signal.emit(float(t), time.time())
         self.usleep(int(t * 10**6))
 
         self.event_finished()
@@ -66,13 +66,13 @@ class SimplestEvent(QThread):
         self.IS_RUNNING = False
         self.IS_FINISHED = True
 
-        self.finish_service_signal.emit()
+        self.finish_service_signal.emit(time.time())
 
     def stop(self):
         self.IS_RUNNING = False
 
         if not self.isFinished():
-            self.stop_service_signal.emit()
+            self.stop_service_signal.emit(time.time())
 
         self.wait()
 
@@ -110,13 +110,13 @@ class BreakDownStream(QThread):
                 break
 
             t = expon.rvs(scale=1 / self.intensity_repair)
-            self.start_repair_signal.emit(float(t))
+            self.start_repair_signal.emit(float(t), time.time())
             self.usleep(int(t * 10**6))
 
             if not self.IS_RUNNING:
                 return
 
-            self.finish_repair_signal.emit()
+            self.finish_repair_signal.emit(time.time())
 
     def stop(self):
         self.IS_RUNNING = False
