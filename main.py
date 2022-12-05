@@ -59,9 +59,9 @@ class Window(QMainWindow):
 
         # Queueing system
         self.X = 10.
-        self.Y = 150.
-        self.B = 10.
-        self.R = 100.
+        self.Y = 1.
+        self.B = 0.2
+        self.R = 1.
         self.queueing_system = QueueingSystem(self.X, self.Y, self.B, self.R)
         self.output_precision = 5
 
@@ -83,7 +83,6 @@ class Window(QMainWindow):
         self.start_button = QPushButton('Start', self)
         self.stop_button = QPushButton('Stop', self)
         self.test_button = QPushButton('Test', self)
-        self.run_button = QPushButton('Run', self)
         self.output = QLabel('Text Label', self)
 
         # Inputs
@@ -187,21 +186,16 @@ class Window(QMainWindow):
         self.set_service_progressbar_value_signal.connect(lambda secs: self.service_progressBar.setValue(secs))
         self.set_repair_progressbar_value_signal.connect(lambda secs: self.repair_progressBar.setValue(secs))
 
-        self.run_button.clicked.connect(self.run_button_clicked)
-
         self.current_progressbar_thread = None
         self.repair_progressbar_thread = ProgressBarThread(self.set_repair_progressbar_value_signal)
         self.service_progressbar_thread = ProgressBarThread(self.set_service_progressbar_value_signal)
 
         # progress bar
-        # self.queueing_system.break_down_signal.connect(self.run_repair_progressbar)
-        # self.queueing_system.service_event.start_break_down_timer_signal.connect(self.run_service_progressbar)
-        #
-        # self.queueing_system.service_event.stop_break_down_timer_signal.connect(lambda: self._stop_service_progress_bar('stop timer signal'))
-        # # self.queueing_system.break_down_signal.connect(lambda: self._stop_service_progress_bar('bread_down signal'))
-        #
-        # self.queueing_system.update_timer_signal.connect(self._update_output_empirical_characteristics)
+        self.queueing_system.break_signal.connect(self.run_repair_progressbar)
+        self.queueing_system.start_service_signal.connect(self.run_service_progressbar)
+        self.queueing_system.stop_service_signal.connect(self.service_progressbar_thread.stop)
 
+        # characteristics
         self.queueing_system.update_theoretical_characteristics_signal.connect(self._update_output_theoretical_characteristics)
         self.queueing_system.update_empirical_characteristics_signal.connect(self._update_output_empirical_characteristics)
 
@@ -249,34 +243,11 @@ class Window(QMainWindow):
         self.A_empirical_lineEdit.setText("")
         self.Q_empirical_lineEdit.setText("")
 
-    # TODO: REMOVE WITH BUTTON
-    def run_button_clicked(self):
-        self.repair_progressbar_thread.set_secs(1)
-        self.repair_progressbar_thread.start()
-
-    def _stop_service_progress_bar(self, text=None):
-        # print('#'*25 + f'Stop service progressbar bar: {text}')
-        self.service_progressbar_thread.stop()
-        self.set_service_progressbar_value_signal.emit(0)
-
     def run_repair_progressbar(self, secs):
-        # print('#'*25 + 'Run repair progressbar')
-        # self.current_progressbar_thread = self.repair_progressbar_thread
-        self.service_progressbar_thread.stop()
-
         self.repair_progressbar_thread.set_secs(secs)
         self.repair_progressbar_thread.start()
 
     def run_service_progressbar(self, secs):
-        # print('#'*25 + 'Run service progressbar')
-        # if self.state != 'idle' or self.state != 'service':
-        #     print('STATE', self.state)
-        #     return
-
-        if self.repair_progressbar_thread.isRunning():
-            # print('*' * 40 + 'TRIED TO RUN SERVICE PROGRESS BAR WHEN REPAIR PROGRESSBAR WAS RUNNING')
-            return
-
         self.service_progressbar_thread.set_secs(secs)
         self.service_progressbar_thread.start()
 
@@ -285,7 +256,6 @@ class Window(QMainWindow):
         self.start_button.setGeometry(int(10 + 0 * self.buttons_width), 10, self.buttons_width, self.buttons_height)
         self.stop_button.setGeometry(int(10 + 1 * self.buttons_width), 10, self.buttons_width, self.buttons_height)
         self.test_button.setGeometry(int(10 + 2 * self.buttons_width), 10, self.buttons_width, self.buttons_height)
-        self.run_button.setGeometry(int(10 + 3 * self.buttons_width), 10, self.buttons_width, self.buttons_height)
 
         # Output
         self.state_label.setGeometry(QRect(430, 100, 100, 100))
