@@ -54,7 +54,9 @@ class SimplestEvent(QThread):
         self.IS_FINISHED = False
 
         t = expon.rvs(scale=1 / self.intensity)
-        self.start_service_signal.emit(float(t), time.time())
+        t0 = time.time()
+        self.start_service_signal.emit(float(t), t0)
+        print(f'ServiceEvent:\tduration: {t:.10f},\tcurrent time: {t0}')
         self.usleep(int(t * 10**6))
 
         self.event_finished()

@@ -218,37 +218,6 @@ class Window(QMainWindow):
         self.changeTexts()
         self.show()
 
-    def _update_output_theoretical_characteristics(self, s0: float, s1: float, s2: float, A: float, Q: float):
-        self.s0_lineEdit.setText(str(round(s0, self.output_precision)))
-        self.s1_lineEdit.setText(str(round(s1, self.output_precision)))
-        self.s2_lineEdit.setText(str(round(s2, self.output_precision)))
-        self.A_lineEdit.setText(str(round(A, self.output_precision)))
-        self.Q_lineEdit.setText(str(round(Q, self.output_precision)))
-
-    def _update_output_empirical_characteristics(self, s0: float, s1: float, s2: float, A: float, Q: float):
-        self.s0_empirical_lineEdit.setText(str(round(s0, self.output_precision)))
-        self.s1_empirical_lineEdit.setText(str(round(s1, self.output_precision)))
-        self.s2_empirical_lineEdit.setText(str(round(s2, self.output_precision)))
-        self.A_empirical_lineEdit.setText(str(round(A, self.output_precision)))
-        self.Q_empirical_lineEdit.setText(str(round(Q, self.output_precision)))
-
-    def _intensity_updated(self):
-        self.queueing_system.update_intensities(self.X, self.Y, self.B, self.R)
-
-        self.s0_empirical_lineEdit.setText("")
-        self.s1_empirical_lineEdit.setText("")
-        self.s2_empirical_lineEdit.setText("")
-        self.A_empirical_lineEdit.setText("")
-        self.Q_empirical_lineEdit.setText("")
-
-    def run_repair_progressbar(self, secs, *args):
-        self.repair_progressbar_thread.set_secs(secs)
-        self.repair_progressbar_thread.start()
-
-    def run_service_progressbar(self, secs, *args):
-        self.service_progressbar_thread.set_secs(secs)
-        self.service_progressbar_thread.start()
-
     def changeGeometry(self):
         # Buttons
         self.start_button.setGeometry(int(10 + 0 * self.buttons_width), 10, self.buttons_width, self.buttons_height)
@@ -345,6 +314,37 @@ class Window(QMainWindow):
         self.A_label.setText("A")
         self.Q_label.setText("Q")
 
+    def _update_output_theoretical_characteristics(self, s0: float, s1: float, s2: float, A: float, Q: float):
+        self.s0_lineEdit.setText(str(round(s0, self.output_precision)))
+        self.s1_lineEdit.setText(str(round(s1, self.output_precision)))
+        self.s2_lineEdit.setText(str(round(s2, self.output_precision)))
+        self.A_lineEdit.setText(str(round(A, self.output_precision)))
+        self.Q_lineEdit.setText(str(round(Q, self.output_precision)))
+
+    def _update_output_empirical_characteristics(self, s0: float, s1: float, s2: float, A: float, Q: float):
+        self.s0_empirical_lineEdit.setText(str(round(s0, self.output_precision)))
+        self.s1_empirical_lineEdit.setText(str(round(s1, self.output_precision)))
+        self.s2_empirical_lineEdit.setText(str(round(s2, self.output_precision)))
+        self.A_empirical_lineEdit.setText(str(round(A, self.output_precision)))
+        self.Q_empirical_lineEdit.setText(str(round(Q, self.output_precision)))
+
+    def _intensity_updated(self):
+        self.queueing_system.update_intensities(self.X, self.Y, self.B, self.R)
+
+        self.s0_empirical_lineEdit.setText("")
+        self.s1_empirical_lineEdit.setText("")
+        self.s2_empirical_lineEdit.setText("")
+        self.A_empirical_lineEdit.setText("")
+        self.Q_empirical_lineEdit.setText("")
+
+    def run_repair_progressbar(self, secs, *args):
+        self.repair_progressbar_thread.set_secs(secs)
+        self.repair_progressbar_thread.start()
+
+    def run_service_progressbar(self, secs, *args):
+        self.service_progressbar_thread.set_secs(secs)
+        self.service_progressbar_thread.start()
+
     def startButtonClicked(self):
         self.output.setText('Start')
         self.queueing_system.start()
@@ -369,8 +369,6 @@ class Window(QMainWindow):
 
     def process_input(self, text: str, prev_number: int, _type: str):
         def inner():
-            # number = None
-
             try:
                 number = float(text)
             except ValueError as e:
@@ -378,7 +376,7 @@ class Window(QMainWindow):
                 return prev_number, False
 
             max_number = 10**8
-            if number < 0 or number > max_number:
+            if number <= 0 or number > max_number:
                 QMessageBox(QMessageBox.Critical, "", f"number should be in [0, {max_number}]", parent=self).show()
                 return prev_number, False
 

@@ -10,34 +10,38 @@ class TimeWatcher(QThread):
         super(TimeWatcher, self).__init__()
         self.IS_RUNNING = False
 
-        self.state = 'idle'
-        self.state_time = None
+        self.state = None
+        self.state_start_time = None
 
-    def set_state(self, state, _time):
-        if state != 'idle' and state != 'service' and state != 'broken':
-            raise ValueError(f'Unknown state: {state}')
+    def set_state(self, new_state: str, new_state_start_time: float):
+        if new_state != 'idle' and new_state != 'service' and new_state != 'broken':
+            raise ValueError(f'Unknown state: {new_state}')
 
-        if not self.IS_RUNNING:
+        if not self.isRunning():
             return
 
-        if self.state_time is None:
-            self.state = state
-            self.state_time = _time
-
-        delta = _time - self.state_time
+        delta = new_state_start_time - self.state_start_time
         prev_state = self.state
 
-        self.state = state
-        self.state_time = _time
+        if self.state == 'service':
+            print(f'TimeWatcher:\tduration: {delta:.10f},\tnew_state: {new_state}')
+
+        self.state = new_state
+        self.state_start_time = new_state_start_time
 
         self.update_time_signal.emit(prev_state, delta)
 
     def run(self):
         self.IS_RUNNING = True
 
+        self.state_start_time = time.time()
+        self.state = 'idle'
+
     def stop(self):
         self.IS_RUNNING = False
-        self.state = 'idle'
+
+        self.state = None
+        self.state_start_time = None
 
     def isRunning(self) -> bool:
         return self.IS_RUNNING
