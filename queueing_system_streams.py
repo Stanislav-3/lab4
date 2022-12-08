@@ -28,6 +28,8 @@ class SimplestStream(QThread):
 
     def stop(self):
         self.IS_RUNNING = False
+
+        self.terminate()
         self.wait()
 
     def isRunning(self) -> bool:
@@ -39,43 +41,49 @@ class SimplestEvent(QThread):
                  finish_service_signal: pyqtSignal):
         super(SimplestEvent, self).__init__()
         self.IS_RUNNING = False
-        self.IS_FINISHED = False
+        self.IS_FINISHED = None
 
         self.intensity = intensity
         self.start_service_signal = start_service_signal
         self.stop_service_signal = stop_service_signal
         self.finish_service_signal = finish_service_signal
 
+        self.start_time = None
+
     def update_intensity(self, intensity):
         self.intensity = intensity
 
+    def set_start_time(self, _time):
+        self.start_time = _time
+
+    # def start(self, priority: 'QThread.Priority' = QThread.InheritPriority) -> None:
     def run(self):
         self.IS_RUNNING = True
         self.IS_FINISHED = False
 
         t = expon.rvs(scale=1 / self.intensity)
-        t0 = time.time()
-        self.start_service_signal.emit(float(t), t0)
-        print(f'ServiceEvent:\tduration: {t:.10f},\tcurrent time: {t0}')
+        self.start_service_signal.emit(float(t))
+        # print(f'ServiceEvent:\tduration: {t:.10f}')
         self.usleep(int(t * 10**6))
 
-        self.event_finished()
-
-    def event_finished(self):
-        if not self.IS_RUNNING:
+        if not self.isRunning():
             return
 
         self.IS_RUNNING = False
         self.IS_FINISHED = True
 
-        self.finish_service_signal.emit(time.time())
+        self.finish_service_signal.emit(float(t))
 
     def stop(self):
         self.IS_RUNNING = False
 
         if not self.isFinished():
-            self.stop_service_signal.emit(time.time())
+            print('Emit stop service signal')
+            self.stop_service_signal.emit(time.time() - self.start_time)
 
+        self.start_time = None
+
+        self.terminate()
         self.wait()
 
     def isRunning(self) -> bool:
@@ -118,10 +126,13 @@ class BreakDownStream(QThread):
             if not self.IS_RUNNING:
                 return
 
-            self.finish_repair_signal.emit(time.time())
+            self.finish_repair_signal.emit(t)
 
     def stop(self):
         self.IS_RUNNING = False
+
+        self.terminate()
+        self.wait()
 
     def isRunning(self) -> bool:
         return self.IS_RUNNING

@@ -58,10 +58,14 @@ class Window(QMainWindow):
         super().__init__()
 
         # Queueing system
-        self.X = 1000.
-        self.Y = 200.
-        self.B = 100.
-        self.R = 250.
+        # self.X = 1000.
+        # self.Y = 200.
+        # self.B = 100.
+        # self.R = 250.
+        self.X = 5.
+        self.Y = 0.1
+        self.B = 0.5
+        self.R = 0.1
         self.queueing_system = QueueingSystem(self.X, self.Y, self.B, self.R)
         self.output_precision = 5
 
@@ -193,7 +197,7 @@ class Window(QMainWindow):
         # progress bar
         self.queueing_system.start_repair_signal.connect(self.run_repair_progressbar)
         self.queueing_system.start_service_signal.connect(self.run_service_progressbar)
-        self.queueing_system.stop_service_signal.connect(self.service_progressbar_thread.stop)
+        self.queueing_system.stop_service_signal.connect(self.stop_service_progressbar)
 
         # characteristics
         self.queueing_system.update_theoretical_characteristics_signal.connect(self._update_output_theoretical_characteristics)
@@ -202,9 +206,7 @@ class Window(QMainWindow):
         self.queueing_system.update_state_signal.connect(lambda state: self.state_label.setText(str(state)))
 
         self.state = None
-        def _assign_state(state):
-            self.state = str(state)
-        self.queueing_system.update_state_signal.connect(lambda state: _assign_state(state))
+        self.queueing_system.update_state_signal.connect(self._assign_state)
         self.intensity_updated_signal.connect(self._intensity_updated)
 
         # Test
@@ -314,6 +316,8 @@ class Window(QMainWindow):
         self.A_label.setText("A")
         self.Q_label.setText("Q")
 
+    def _assign_state(self, state):
+        self.state = str(state)
     def _update_output_theoretical_characteristics(self, s0: float, s1: float, s2: float, A: float, Q: float):
         self.s0_lineEdit.setText(str(round(s0, self.output_precision)))
         self.s1_lineEdit.setText(str(round(s1, self.output_precision)))
@@ -344,6 +348,10 @@ class Window(QMainWindow):
     def run_service_progressbar(self, secs, *args):
         self.service_progressbar_thread.set_secs(secs)
         self.service_progressbar_thread.start()
+
+    def stop_service_progressbar(self, *args):
+        print('try to stop')
+        self.service_progressbar_thread.stop()
 
     def startButtonClicked(self):
         self.output.setText('Start')
