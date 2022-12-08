@@ -58,14 +58,14 @@ class Window(QMainWindow):
         super().__init__()
 
         # Queueing system
-        # self.X = 1000.
-        # self.Y = 200.
-        # self.B = 100.
-        # self.R = 250.
-        self.X = 5.
-        self.Y = 0.1
-        self.B = 0.5
-        self.R = 0.1
+        self.X = 1000.
+        self.Y = 200.
+        self.B = 100.
+        self.R = 250.
+        # self.X = 5.
+        # self.Y = 0.1
+        # self.B = 0.5
+        # self.R = 0.1
         self.queueing_system = QueueingSystem(self.X, self.Y, self.B, self.R)
         self.output_precision = 5
 
@@ -350,7 +350,7 @@ class Window(QMainWindow):
         self.service_progressbar_thread.start()
 
     def stop_service_progressbar(self, *args):
-        print('try to stop')
+        # print('try to stop')
         self.service_progressbar_thread.stop()
 
     def startButtonClicked(self):

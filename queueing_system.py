@@ -127,11 +127,11 @@ class QueueingSystem(QThread):
         A = self.finished / all_time
         Q = self.finished / actual_time
 
-        s0 = (actual_time - self.all_time_in_service - self.all_time_in_repair)
+        s0 = (actual_time - self.all_time_in_service - self.all_time_in_repair) / actual_time
         s1 = self.all_time_in_service
         s2 = self.all_time_in_repair
-        print('s1', s1)
-        print('s2', s2)
+        if s2 != 0:
+            s0 = s1 / s2
 
         # A = self.finished / (time.time() - self.start_time)
         # Q = A / self.X
@@ -241,7 +241,7 @@ class QueueingSystem(QThread):
         self.request_stream.stop()
         self.service_event.stop()
         self.break_stream.stop()
-        self.wait()
+        # self.wait()
         self.time_watcher.stop()
 
         self.is_channel_blocked = False

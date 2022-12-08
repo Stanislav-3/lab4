@@ -29,9 +29,6 @@ class SimplestStream(QThread):
     def stop(self):
         self.IS_RUNNING = False
 
-        self.terminate()
-        self.wait()
-
     def isRunning(self) -> bool:
         return self.IS_RUNNING
 
@@ -58,6 +55,7 @@ class SimplestEvent(QThread):
 
     # def start(self, priority: 'QThread.Priority' = QThread.InheritPriority) -> None:
     def run(self):
+        print('RUN'*10)
         self.IS_RUNNING = True
         self.IS_FINISHED = False
 
@@ -77,14 +75,12 @@ class SimplestEvent(QThread):
     def stop(self):
         self.IS_RUNNING = False
 
-        if not self.isFinished():
+        if self.start_time is not None and not self.isFinished():
             print('Emit stop service signal')
             self.stop_service_signal.emit(time.time() - self.start_time)
+            print('after emit')
 
         self.start_time = None
-
-        self.terminate()
-        self.wait()
 
     def isRunning(self) -> bool:
         return self.IS_RUNNING
@@ -130,9 +126,6 @@ class BreakDownStream(QThread):
 
     def stop(self):
         self.IS_RUNNING = False
-
-        self.terminate()
-        self.wait()
 
     def isRunning(self) -> bool:
         return self.IS_RUNNING

@@ -28,8 +28,8 @@ class TimeWatcher(QThread):
         if new_state_time:
             delta = new_state_time - self.state_start_time
 
-        if delta < 0:
-            print(f'TimeWatcher:\tduration: {delta:.10f},\told_state: {self.state},\tnew_state: {new_state}')
+        # if delta < 0:
+        #     print(f'TimeWatcher:\tduration: {delta:.10f},\told_state: {self.state},\tnew_state: {new_state}')
 
         prev_state = self.state
 
