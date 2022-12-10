@@ -63,9 +63,9 @@ class Window(QMainWindow):
         self.B = 100.
         self.R = 250.
         # self.X = 5.
-        # self.Y = 0.1
-        # self.B = 0.5
-        # self.R = 0.1
+        # self.Y = 0.5
+        # self.B = 1
+        # self.R = 0.5
         self.queueing_system = QueueingSystem(self.X, self.Y, self.B, self.R)
         self.output_precision = 5
 

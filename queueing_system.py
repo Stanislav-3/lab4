@@ -130,8 +130,8 @@ class QueueingSystem(QThread):
         s0 = (actual_time - self.all_time_in_service - self.all_time_in_repair) / actual_time
         s1 = self.all_time_in_service
         s2 = self.all_time_in_repair
-        if s2 != 0:
-            s0 = s1 / s2
+        # if s2 != 0:
+        #     s0 = s1 / s2
 
         # A = self.finished / (time.time() - self.start_time)
         # Q = A / self.X
@@ -146,6 +146,7 @@ class QueueingSystem(QThread):
 
         self.Q = self.s0 * (self.Y / (self.Y + self.B))
         self.A = self.X * self.Q
+
         self.update_theoretical_characteristics_signal.emit(self.s0, self.s1, self.s2, self.A, self.Q)
 
     def update_intensities(self, X, Y, B, R):
@@ -178,6 +179,7 @@ class QueueingSystem(QThread):
             self.start()
 
     def service_interrupted(self, delta):
+
         self.rejected += 1
         self.all_time_in_service += delta
 
@@ -187,13 +189,16 @@ class QueueingSystem(QThread):
         self.service_event.stop()
         self.break_downs += 1
 
+        # self.break_stream.set_blocked(False)
         self.update_state_signal.emit('broken', _time, -1)
 
     def finish_repair(self, delta):
         print('QUEUEING SYSTEM: Repaired')
+        # self.break_stream.set_blocked(True)
 
         self.is_channel_blocked = False
         self.all_time_in_repair += delta
+
         self.update_state_signal.emit('idle', -1, delta)
 
     def new_request(self, _time):
@@ -208,8 +213,11 @@ class QueueingSystem(QThread):
         self.is_channel_blocked = True
 
         self.service_event.set_start_time(_time)
-        self.service_event.start()
+        print(self.service_event.isRunning())
+        self.usleep(100)
 
+        self.service_event.start(QThread.TimeCriticalPriority)
+        print('there')
         self.update_state_signal.emit('service', _time, -1)
 
     def request_finished(self, delta):
@@ -221,12 +229,14 @@ class QueueingSystem(QThread):
         self.all_time_in_service += delta
         self.update_state_signal.emit('idle', -1, delta)
 
+    def start(self, priority: 'QThread.Priority' = QThread.TimeCriticalPriority) -> None:
+        super().start(priority)
     def run(self):
         self.IS_RUNNING = True
 
-        self.time_watcher.start()
-        self.request_stream.start()
-        self.break_stream.start()
+        self.time_watcher.start(QThread.TimeCriticalPriority)
+        self.request_stream.start(QThread.TimeCriticalPriority)
+        self.break_stream.start(QThread.TimeCriticalPriority)
 
         self.start_time = time.time()
 

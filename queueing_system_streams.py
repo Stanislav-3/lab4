@@ -51,9 +51,14 @@ class SimplestEvent(QThread):
         self.intensity = intensity
 
     def set_start_time(self, _time):
+        print('set_start_time')
         self.start_time = _time
 
-    # def start(self, priority: 'QThread.Priority' = QThread.InheritPriority) -> None:
+    def start(self, priority: 'QThread.Priority' = QThread.InheritPriority) -> None:
+        self.IS_RUNNING = False
+        self.IS_FINISHED = False
+        super().start(priority)
+
     def run(self):
         print('RUN'*10)
         self.IS_RUNNING = True
@@ -78,9 +83,9 @@ class SimplestEvent(QThread):
         if self.start_time is not None and not self.isFinished():
             print('Emit stop service signal')
             # TODO: IMPROVE TIME MAYBE USING BREAKDOWN TIME
-            # MAYBE ADD SIGNAL TO BREAKDOWN ADD STOP SERVICE VIA IT
-            # AND ALSO PARSE BREAK DELTA OT TIME
-            # INSTEAD OF USAGE OF time.time() below
+            # TODO: MAYBE ADD SIGNAL TO BREAKDOWN ADD STOP SERVICE VIA IT
+            # TODO: AND ALSO PARSE BREAK DELTA OT TIME
+            # TODO: INSTEAD OF USAGE OF time.time() below
             self.stop_service_signal.emit(time.time() - self.start_time)
             print('after emit')
 
@@ -105,19 +110,30 @@ class BreakDownStream(QThread):
         self.start_repair_signal = start_repair_signal
         self.finish_repair_signal = finish_repair_signal
 
+        self.is_blocked = True
+
     def update_intensities(self, intensity_break_down, intensity_repair):
         self.intensity_break_down = intensity_break_down
         self.intensity_repair = intensity_repair
+
+    def set_blocked(self, value: bool):
+        self.is_blocked = value
 
     def run(self):
         self.IS_RUNNING = True
 
         while self.IS_RUNNING:
+            # if self.is_blocked:
+            #     continue
+
             t = expon.rvs(scale=1 / self.intensity_break_down)
             self.usleep(int(t * 10**6))
 
             if not self.isRunning():
                 break
+
+            if self.is_blocked:
+                continue
 
             t = expon.rvs(scale=1 / self.intensity_repair)
             self.start_repair_signal.emit(float(t), time.time())
