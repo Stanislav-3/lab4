@@ -140,17 +140,12 @@ class QueueingSystem(QThread):
     def update_theoretical_characteristics(self):
         self.s0 = 1 / (1
                        + self.X / (self.Y + self.B)
-                       + self.B / self.R
-                       + self.B / self.R * (self.X / (self.Y + self.B)))
-        self.s1 = 1 / (1
-                       + (self.Y + self.B) / self.X
-                       + self.B / self.R
-                       + self.B / self.R * ((self.Y + self.B) / self.X))
-        self.s2 = 1 - self.s0 - self.s1
+                       + self.X * self.B / (self.R * (self.Y + self.B)))
+        self.s1 = self.s0 * (self.X / (self.Y + self.B))
+        self.s2 = self.s1 * (self.B / self.R)
 
-        self.Q = self.s0
+        self.Q = self.s0 * (self.Y / (self.Y + self.B))
         self.A = self.X * self.Q
-
         self.update_theoretical_characteristics_signal.emit(self.s0, self.s1, self.s2, self.A, self.Q)
 
     def update_intensities(self, X, Y, B, R):

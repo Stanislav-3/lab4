@@ -59,9 +59,9 @@ class SimplestEvent(QThread):
         self.IS_RUNNING = True
         self.IS_FINISHED = False
 
-        t = expon.rvs(scale=1 / self.intensity)
-        self.start_service_signal.emit(float(t))
-        # print(f'ServiceEvent:\tduration: {t:.10f}')
+        t = float(expon.rvs(scale=1 / self.intensity))
+        self.start_service_signal.emit(t)
+
         self.usleep(int(t * 10**6))
 
         if not self.isRunning():
@@ -70,13 +70,17 @@ class SimplestEvent(QThread):
         self.IS_RUNNING = False
         self.IS_FINISHED = True
 
-        self.finish_service_signal.emit(float(t))
+        self.finish_service_signal.emit(t)
 
     def stop(self):
         self.IS_RUNNING = False
 
         if self.start_time is not None and not self.isFinished():
             print('Emit stop service signal')
+            # TODO: IMPROVE TIME MAYBE USING BREAKDOWN TIME
+            # MAYBE ADD SIGNAL TO BREAKDOWN ADD STOP SERVICE VIA IT
+            # AND ALSO PARSE BREAK DELTA OT TIME
+            # INSTEAD OF USAGE OF time.time() below
             self.stop_service_signal.emit(time.time() - self.start_time)
             print('after emit')
 
