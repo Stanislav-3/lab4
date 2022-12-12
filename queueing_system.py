@@ -1,10 +1,7 @@
 # import time
 # import scipy
 from PyQt5.QtCore import QTimer, QThread, QObject, pyqtSignal
-
-import my_time
 from queueing_system_streams import SimplestStream, SimplestEvent, BreakDownStream
-from time_watcher import TimeWatcher
 import time
 
 
@@ -77,8 +74,8 @@ class QueueingSystem(QThread):
 
         # Signal connections
         self.new_request_signal.connect(self.new_request)
-        self.finish_service_signal.connect(self.request_finished)
-        self.stop_service_signal.connect(self.service_interrupted)
+        self.finish_service_signal.connect(self.finish_request)
+        self.stop_service_signal.connect(self.interrupt_service)
 
         self.start_repair_signal.connect(self.start_repair)
         self.finish_repair_signal.connect(self.finish_repair)
@@ -146,17 +143,17 @@ class QueueingSystem(QThread):
         self.service_time = 0
         self.broken_time = 0
 
+        self.all_time_in_idle = 0
+        self.all_time_in_service = 0
+        self.all_time_in_repair = 0
+
         if was_running:
             self.start()
 
-    def service_interrupted(self, delta):
-        self.rejected += 1
-        self.all_time_in_service += delta
-
     def start_repair(self, _, _time):
         print('QUEUEING SYSTEM: Broke down')
-
         self.is_channel_blocked = True
+
         self.service_event.stop(_time)
         self.break_downs += 1
 
@@ -178,29 +175,38 @@ class QueueingSystem(QThread):
         if self.is_channel_blocked:
             self.rejected += 1
             return
-
         print('QUEUEING SYSTEM: Request started to service')
-
         self.is_channel_blocked = True
 
-        self.all_time_in_idle += (_time - self.start_idle_time)
+        delta = (_time - self.start_idle_time)
+        if delta < 0:
+            delta = 0
+
+        self.all_time_in_idle += delta
 
         self.service_event.set_start_time(_time)
-        self.service_event.start(QThread.TimeCriticalPriority)
+        self.service_event.start()
+
         self.break_stream.set_blocked(False)
 
         self.update_state_signal.emit('service')
 
-    def request_finished(self, delta, _time):
-        print('QUEUEING SYSTEM: Request finished')
+    def interrupt_service(self, delta):
+        self.rejected += 1
+        self.all_time_in_service += delta
 
-        self.finished += 1
+    def finish_request(self, delta, _time):
+        print('QUEUEING SYSTEM: Request finished')
+        self.break_stream.set_blocked(True)
         self.is_channel_blocked = False
 
-        self.all_time_in_service += delta
-        self.start_idle_time = _time
+        self.finished += 1
 
-        self.break_stream.set_blocked(True)
+        self.all_time_in_service += delta
+
+        # time
+        self.start_idle_time = time.time()
+
         self.update_state_signal.emit('idle')
 
     def start(self, priority: 'QThread.Priority' = QThread.TimeCriticalPriority) -> None:
@@ -210,8 +216,8 @@ class QueueingSystem(QThread):
         self.IS_RUNNING = True
         self.start_idle_time = time.time()
 
-        self.request_stream.start(QThread.TimeCriticalPriority)
-        self.break_stream.start(QThread.TimeCriticalPriority)
+        self.request_stream.start()
+        self.break_stream.start()
 
     def stop(self):
         self.IS_RUNNING = False

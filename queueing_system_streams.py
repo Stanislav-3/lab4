@@ -138,10 +138,16 @@ class BreakDownStream(QThread):
             if self.IS_BLOCKED:
                 continue
 
-            t = float(expon.rvs(scale=1 / self.intensity_repair))
             start_repair_time = time.time()
+
+            t = float(expon.rvs(scale=1 / self.intensity_repair))
+
             self.start_repair_signal.emit(t, start_repair_time)
+
             self.usleep(int(t * 10**6))
+
+            # if self.IS_BLOCKED:
+            #     continue
 
             if not self.IS_RUNNING:
                 return
