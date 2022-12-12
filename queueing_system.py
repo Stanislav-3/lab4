@@ -93,9 +93,9 @@ class QueueingSystem(QThread):
     def update_empirical_characteristics(self):
         all_time = self.all_time_in_idle + self.all_time_in_service  + self.all_time_in_repair
 
-        # if all_time == 0:
-        #     self.update_empirical_characteristics_signal.emit(0, 0, 0, 0, 0)
-        #     return
+        if all_time == 0:
+            self.update_empirical_characteristics_signal.emit(0, 0, 0, 0, 0)
+            return
 
         s0 = self.all_time_in_idle / all_time
         s1 = self.all_time_in_service / all_time

@@ -31,7 +31,7 @@ class Window(QMainWindow):
 
         # QMainWindow
         desktop_rect = QApplication.desktop().screenGeometry()
-        self.width = 1200
+        self.width = 800
         self.height = 500
         self.left = round((desktop_rect.width() - self.width) / 2)
         self.top = round((desktop_rect.height() - self.height) / 2)
@@ -46,7 +46,6 @@ class Window(QMainWindow):
         # Buttons
         self.start_button = QPushButton('Start', self)
         self.stop_button = QPushButton('Stop', self)
-        self.output = QLabel('Text Label', self)
 
         # Inputs
         self.prev_text = None
@@ -183,7 +182,6 @@ class Window(QMainWindow):
         # Output
         self.state_label.setGeometry(QRect(430, 100, 100, 100))
         self.state_label.setText('state')
-        self.output.setGeometry(850, 20 + self.buttons_height, self.width - 10, self.height - 20 - self.buttons_height)
 
         # Outputs
         # Empirical S0, S1, S2 box
@@ -308,7 +306,6 @@ class Window(QMainWindow):
         self.service_progressbar_thread.stop()
 
     def startButtonClicked(self):
-        self.output.setText('Start')
         self.queueing_system.start()
 
     def stopButtonClicked(self):
@@ -318,12 +315,12 @@ class Window(QMainWindow):
 
         good = self.queueing_system.finished + self.queueing_system.rejected == self.queueing_system.requests
 
-        self.output.setText(f'X: {self.queueing_system.X}, Y: {self.queueing_system.Y}, R: {self.queueing_system.R}\n'
-                            f'\nRequests: {self.queueing_system.requests}\n'
-                            f'Rejected: {self.queueing_system.rejected}\n'
-                            f'Finished: {self.queueing_system.finished}\n'
-                            f'Break downs: {self.queueing_system.break_downs}\n'
-                            f'\nGood?: {good} ')
+        # print(f'X: {self.queueing_system.X}, Y: {self.queueing_system.Y}, R: {self.queueing_system.R}\n'
+        #                     f'\nRequests: {self.queueing_system.requests}\n'
+        #                     f'Rejected: {self.queueing_system.rejected}\n'
+        #                     f'Finished: {self.queueing_system.finished}\n'
+        #                     f'Break downs: {self.queueing_system.break_downs}\n'
+        #                     f'\nGood?: {good} ')
 
     def process_input(self, text: str, prev_number: int, _type: str):
         def inner():
