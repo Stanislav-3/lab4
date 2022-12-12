@@ -170,13 +170,14 @@ class QueueingSystem(QThread):
         print('QUEUEING SYSTEM: Request started to service')
         self.is_channel_blocked = True
 
-        delta = (_time - self.start_idle_time)
+        t = time.time()
+        delta = (t - self.start_idle_time)
         if delta < 0:
             delta = 0
 
         self.all_time_in_idle += delta
 
-        self.service_event.set_start_time(_time)
+        self.service_event.set_start_time(t)
         self.service_event.start()
 
         self.break_stream.set_blocked(False)
@@ -197,7 +198,7 @@ class QueueingSystem(QThread):
         self.all_time_in_service += delta
 
         # time
-        self.start_idle_time = time.time()
+        self.start_idle_time = _time
 
         self.update_state_signal.emit('idle')
 

@@ -22,10 +22,10 @@ class Window(QMainWindow):
         self.B = 100.
         self.R = 250.
 
-        # self.X = 100.
-        # self.Y = 20.
-        # self.B = 10.
-        # self.R = 25.
+        self.X = 100.
+        self.Y = 20.
+        self.B = 10.
+        self.R = 25.
         self.queueing_system = QueueingSystem(self.X, self.Y, self.B, self.R)
         self.output_precision = 5
 
