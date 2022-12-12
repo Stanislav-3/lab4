@@ -29,6 +29,7 @@ class QueueingSystem(QThread):
         self.start_time = None
         self.start_idle_time = None
 
+        self.state = None
         self.all_time_in_idle = 0.
         self.all_time_in_service = 0.
         self.all_time_in_repair = 0.
@@ -47,11 +48,6 @@ class QueueingSystem(QThread):
         self.finished = 0
         self.rejected = 0
         self.break_downs = 0
-
-        self.state = None
-        self.idle_time = 0.
-        self.service_time = 0.
-        self.broken_time = 0.
 
         # Characteristics
         self.s0 = None
@@ -81,10 +77,6 @@ class QueueingSystem(QThread):
         self.finish_repair_signal.connect(self.finish_repair)
 
         self.update_state_signal.connect(self.update_state)
-
-        # TimeWatcher
-        # self.time_watcher = TimeWatcher()
-        # self.time_watcher.update_time_signal.connect(self.update_time_and_characteristics)
 
     def update_state(self, new_state):
         self.state = new_state

@@ -25,7 +25,7 @@ class ProgressBarThread(QThread):
         self.count = 0
 
     def timeout(self):
-        self.count += 1
+        self.count += 2
 
         if self.count <= 100 and self.IS_RUNNING:
             self.signal.emit(self.count)
