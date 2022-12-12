@@ -7,47 +7,6 @@ import time
 import sys
 
 
-class Test(QThread):
-    signal = pyqtSignal()
-
-    def __init__(self, system, output, parent=None):
-        super(Test, self).__init__(parent=parent)
-        self.queueing_system = system
-        self.output = output
-
-    def run(self) -> None:
-        for i in range(1000):
-            print(i)
-            self.queueing_system.start()
-            time.sleep(0.01)
-            self.queueing_system.stop()
-            self.queueing_system.wait()
-            if self.queueing_system.requests != self.queueing_system.rejected_on_request \
-                                                + self.queueing_system.rejected_on_service \
-                                                + self.queueing_system.finished:
-                self.output.setText(f'i: {i}\n' +
-                                    f'Requests: {self.queueing_system.requests}\n'
-                                    f'Rejected_on_request: {self.queueing_system.rejected_on_request}\n'
-                                    f'Rejected_on_service: {self.queueing_system.rejected_on_service}\n'
-                                    f'Finished: {self.queueing_system.finished}\n'
-                                    f'Break downs: {self.queueing_system.break_downs}\n\n'
-                                    )
-                return
-
-        # self.output.setText(f'i: {i}\n' +
-        #                     f'Requests: {self.queueing_system.requests}\n'
-        #                     f'Rejected_on_request: {self.queueing_system.rejected_on_request}\n'
-        #                     f'Rejected_on_service: {self.queueing_system.rejected_on_service}\n'
-        #                     f'Finished: {self.queueing_system.finished}\n'
-        #                     f'Break downs: {self.queueing_system.break_downs}\n\n'
-        #                     )
-        self.output.setText(self.output.text() + 'Done')
-        self.stop()
-
-    def stop(self):
-        self.quit()
-
-
 class Window(QMainWindow):
     set_repair_progressbar_value_signal = pyqtSignal(int)
     set_service_progressbar_value_signal = pyqtSignal(int)
@@ -87,7 +46,6 @@ class Window(QMainWindow):
         # Buttons
         self.start_button = QPushButton('Start', self)
         self.stop_button = QPushButton('Stop', self)
-        self.test_button = QPushButton('Test', self)
         self.output = QLabel('Text Label', self)
 
         # Inputs
@@ -181,7 +139,6 @@ class Window(QMainWindow):
         # Signals
         self.start_button.clicked.connect(self.startButtonClicked)
         self.stop_button.clicked.connect(self.stopButtonClicked)
-        self.test_button.clicked.connect(self.testButtonClicked)
 
         self.x_lineEdit.editingFinished.connect(lambda: self.process_input(self.x_lineEdit.text(), self.X, 'x'))
         self.y_lineEdit.editingFinished.connect(lambda: self.process_input(self.y_lineEdit.text(), self.Y, 'y'))
@@ -210,9 +167,6 @@ class Window(QMainWindow):
         self.queueing_system.update_state_signal.connect(self._assign_state)
         self.intensity_updated_signal.connect(self._intensity_updated)
 
-        # Test
-        self.test_my = Test(self.queueing_system, self.output, self)
-
         # Update characteristics
         self.queueing_system.update_theoretical_characteristics()
 
@@ -225,7 +179,6 @@ class Window(QMainWindow):
         # Buttons
         self.start_button.setGeometry(int(10 + 0 * self.buttons_width), 10, self.buttons_width, self.buttons_height)
         self.stop_button.setGeometry(int(10 + 1 * self.buttons_width), 10, self.buttons_width, self.buttons_height)
-        self.test_button.setGeometry(int(10 + 2 * self.buttons_width), 10, self.buttons_width, self.buttons_height)
 
         # Output
         self.state_label.setGeometry(QRect(430, 100, 100, 100))
@@ -371,10 +324,6 @@ class Window(QMainWindow):
                             f'Finished: {self.queueing_system.finished}\n'
                             f'Break downs: {self.queueing_system.break_downs}\n'
                             f'\nGood?: {good} ')
-
-    def testButtonClicked(self):
-        self.output.clear()
-        self.test_my.start()
 
     def process_input(self, text: str, prev_number: int, _type: str):
         def inner():
